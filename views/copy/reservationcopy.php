@@ -325,12 +325,14 @@ $this->params['breadcrumbs'][] = $this->title;
 
 					<div id="new-patient-block" style="display:none;">
 
+						<?php $modelPatient->birth_date = "2000-01-01"; ?>
+
 						<?= $form->field($modelPatient, 'birth_date')->textInput(['maxlength' => true, 'placeholder' => 
 							'Pasirinkite datą ...'])
 			                ->widget(DatePicker::classname(), [
 	                            'options' => ['placeholder' => 'Pasirinkite datą ...'],                            
 	                            'removeButton' => false,
-                            	//'value' => "1999-01-01", 
+                            	'value' => "1999-01-01", 
 	                            'language' => 'lt', 	                                                   
 	                            'pluginOptions' => [
 	                                'autoclose' => true,
@@ -344,6 +346,8 @@ $this->params['breadcrumbs'][] = $this->title;
 						<?= $form->field($modelPatient, 'phone', ['labelOptions' => [ 'class' => 'label-asterix' ]])
 						->textInput(['maxlength' => true, 'minlength' => true, 
 						'placeholder' => 'Įveskite telefono numerį (86...)']); ?>
+
+						<?php $modelPatient->city = 1; ?>
 
 						<?= $form->field($modelPatient, 'city', ['labelOptions' => [ 'class' => 'label-asterix' ]])
 						->dropDownList($cities_list, ['prompt' => ['text' => Yii::t('app', 'Select city'), 'options'=> 
