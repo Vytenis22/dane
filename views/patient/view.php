@@ -67,12 +67,24 @@ $this->params['breadcrumbs'][] = $this->title;
                     ],
                     'name',
                     'surname',
-                    'code',
+                    'birth_date',
+                    [
+                        'attribute' => 'code',
+                        'options' => [
+                            'class' => 'col-sm-1',
+                        ],
+                        'visible' => \Yii::$app->user->can('manageVisits'),
+                    ],
+                    'sex',
+                    //'code',
                     'email:email',
                     'phone',
                     'address',
-                    'sex',
-                    'birth_date',
+                    [
+                        'label' => 'Miestas',
+                        'attribute' => 'cityName',
+                    ],
+
                     //'id_Patient',
                 ],
             ]) ?>

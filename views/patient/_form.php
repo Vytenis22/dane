@@ -21,14 +21,6 @@ use kartik\date\DatePicker;
 
         <?= $form->field($model, 'surname')->textInput(['maxlength' => true]) ?>
 
-        <?= $form->field($model, 'email')->textInput(['maxlength' => true]) ?>
-
-        <?= $form->field($model, 'phone')->textInput(['maxlength' => true]) ?>
-
-        <?= $form->field($model, 'code')->textInput(['maxlength' => true, 'minlength' => true]) ?>
-
-        <?= $form->field($model, 'sex')->textInput(['maxlength' => true])->dropDownList(['moteris' => 'moteris', 'vyras' => 'vyras'], ['prompt' => ['text' => Yii::t('app', 'Select sex'), 'options'=> ['disabled' => true, 'selected' => true]], 'class'=>'form-control required']) ?>
-
         <?= $form->field($model, 'birth_date')->textInput(['maxlength' => true])
                             ->widget(DatePicker::classname(), [
                                 'options' => ['placeholder' => 'Pasirinkite data ...',],                            
@@ -43,6 +35,20 @@ use kartik\date\DatePicker;
                                 ],
                                  
                             ]) ?>
+
+        <?= $form->field($model, 'code')->textInput(['maxlength' => true, 'minlength' => true]) ?>
+
+        <?= $form->field($model, 'sex')->textInput(['maxlength' => true])->dropDownList(['moteris' => 'moteris', 'vyras' => 'vyras'], ['prompt' => ['text' => Yii::t('app', 'Select sex'), 'options'=> ['disabled' => true, 'selected' => true]], 'class'=>'form-control required']) ?>
+
+        <?= $form->field($model, 'email')->textInput(['maxlength' => true]) ?>
+
+        <?= $form->field($model, 'phone')->textInput(['maxlength' => true]) ?>
+
+        <?= $form->field($model, 'address')->textInput(['maxlength' => true]) ?>
+
+        <?= $form->field($model, 'city', ['labelOptions' => [ 'class' => 'label-asterix' ]])
+        ->dropDownList($cities_list, ['prompt' => ['text' => Yii::t('app', 'Select city'), 'options'=> 
+        ['disabled' => true, 'selected' => true]]]); ?>
 
         <div class="form-group">
             <?= Html::submitButton(Yii::t('app', 'Save'), ['class' => 'btn btn-success']) ?>

@@ -13,7 +13,7 @@ $this->params['breadcrumbs'][] = $this->title;
 <div class="patient-index">
 
     <div class="row">
-        <div class="col-sm-10">
+        <div class="col-sm-11">
 
         <h1 style="margin-top: 0px"><?= Html::encode($this->title) ?></h1>
         <?php Pjax::begin(); ?>
@@ -54,7 +54,8 @@ $this->params['breadcrumbs'][] = $this->title;
                     'attribute' => 'code',
                     'options' => [
                         'class' => 'col-sm-1',
-                    ]
+                    ],
+                    'visible' => \Yii::$app->user->can('manageVisits'),
                 ],
                 'email:email',
                 /*[
@@ -80,6 +81,14 @@ $this->params['breadcrumbs'][] = $this->title;
                 //'birth_date',
                 [
                     'attribute' => 'birth_date',
+                    'options' => [
+                        'class' => 'col-sm-1',
+                    ]
+                ],
+                [
+                    'label' => 'Miestas',
+                    'attribute' => 'cityObj',
+                    'value' => 'cityName',
                     'options' => [
                         'class' => 'col-sm-1',
                     ]
