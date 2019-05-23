@@ -30,7 +30,28 @@ use yii\helpers\Url;
 
     <?php $form = ActiveForm::begin(); ?>
 
-    <?= $form->field($modelService, 'fk_id_service')->textInput()->dropDownList($services_list, ['prompt' => 'Pasirinkite paslaugą']);  ?>
+    <?= $form->field($modelService, 'fk_id_service')->textInput()->dropDownList($services_list, ['prompt' => ['text' => 
+    'Pasirinkite paslaugą', 'options' => ['disabled' => true, 'selected' => true]], 'onchange'=>'
+                                $.get( "'.Url::toRoute('/visit/price', true).'", { id: $(this).val() } )
+                                    .done(function( data ) {
+                                        /*console.log(data);*/
+                                        /*$( "#visit-total_price" ).val(data);*/
+                                        $( "#'.Html::getInputId($model, 'total_price').'" ).val( data );
+                                    }
+                                );  
+                                var start_t = $(document.getElementById("visit-start_time")).val();
+                                var id_service = $(document.getElementById("orderedservice-fk_id_service")).val();
+                                $.get( "'.Url::toRoute('/visit/end-time', true).'", { 
+                                    start_time: start_t,
+                                    fk_id_service: id_service
+                                     } )
+                                    .done(function( data ) {
+                                        /*console.log(data);*/
+                                        /*$( "#visit-total_price" ).val(data);*/
+                                        $( "#'.Html::getInputId($model, 'end').'" ).val( data );
+                                    }
+                                );                      
+                            ']);  ?>
 
     <?= $form->field($model, 'start_time')->widget(DateTimePicker::classname(), [
                             'options' => ['placeholder' => 'Pasirinkite datą ...'],                         
@@ -77,7 +98,7 @@ use yii\helpers\Url;
     <!-- <?= $form->field($model, 'fk_user')->textInput() ?> -->
 
     <?= $form->field($model, 'fk_patient')->dropDownList($patients_list, 
-            ['prompt' => Yii::t('app', 'Select patient')]) ?>
+            ['prompt' => ['text' => Yii::t('app', 'Select patient'), 'options' => ['disabled' => true, 'selected' => true]]]) ?>
 
     <div class="form-group">
         <?= Html::submitButton(Yii::t('app', 'Save'), ['class' => 'btn btn-success']) ?>

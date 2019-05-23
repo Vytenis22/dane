@@ -15,6 +15,7 @@ $this->title = Yii::t('app', 'Visits');
 $this->params['breadcrumbs'][] = $this->title;
 
 ?>
+<script src="https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
 <script type='text/javascript'>
 	var js_array = <?php echo json_encode($assistants_id); ?>;
 	//var js_array = Object.entries(js_obj);
@@ -34,6 +35,17 @@ $this->params['breadcrumbs'][] = $this->title;
         
         echo "<div id='modalContent'></div>";
         Modal::end();
+
+        $resources = array();
+        foreach ($doctors as $doctor) {
+    		$pieces = explode(" ", $doctor->profile->name);
+    		$piece_end = substr($pieces[0], -1);
+        	if (in_array($doctor->id, $assistants_id)) {
+	        	$resources[] = ['id' => $doctor->id, 'title' => strcmp(strtolower($piece_end), "s") ? 'Asistentė ' . $pieces[0] : 'Asistentas ' . $pieces[0]];
+        	} else {
+        		$resources[] = ['id' => $doctor->id, 'title' => strcmp(strtolower($piece_end), "s") ? 'Odontologė ' . $pieces[0] : 'Odontologas ' . $pieces[0]];
+        	}
+        }
 		
 	?>
 	
@@ -42,7 +54,8 @@ $this->params['breadcrumbs'][] = $this->title;
 		\yii2fullcalendarscheduler\yii2fullcalendarscheduler::widget(array(
               'events' => $visits,
               'clientOptions' => [ 
-        		'defaultView' => 'agendaDay',
+        		//'defaultView' => 'agendaDay',
+        		'defaultDate' => new \yii\web\JsExpression('Cookies.get("fullCalendarCurrentDate") || null'),
               	'schedulerLicenseKey' => 'GPL-My-Project-Is-Open-Source',
        	 		'weekends' => false,
 		        //'editable' => true,
@@ -52,9 +65,40 @@ $this->params['breadcrumbs'][] = $this->title;
 				'allDaySlot' => false,
 				'minTime' => "08:00",
 				'maxTime' => "18:00",
-				'droppable' => true,
-              	'views' => ['groupByResource' => true],         	
-		        'resources' => [
+				'droppable' => false,
+              	'views' => ['groupByResource' => true],    
+              	'resources' => $resources,
+              	'resourceRender' => new \yii\web\JsExpression('function(resource, el, view ) {              		
+      				/*el[0].classList.add("mystyle");*/
+      				var id = resource.id;
+      				var img = new Image(100,100);
+      				var img_src = "../../web/images/resources/" + id + ".jpg";
+      				img.src = img_src;
+      				img.onerror = function () {
+						img_src = "../../web/images/resources/0.png";
+						img.src = img_src;
+					}
+      				img.classList.add("resource-img");
+      				el[0].appendChild(img);    				
+              	}'),
+              	'defaultView' => new \yii\web\JsExpression('Cookies.get("fullCalendarCurrentView") || "agendaDay"'),
+				//'defaultDate' => 'Cookies.get("fullCalendarCurrentDate")' || '2019-05-21',
+				'viewRender' => new \yii\web\JsExpression('function(view) {
+								  Cookies.set("fullCalendarCurrentView", view.name, {path: ""});
+								  Cookies.set("fullCalendarCurrentDate", view.intervalStart.format(), {path: ""});
+								}'),
+              	'resourceColumns' => [
+			    [
+			      'labelText' => 'First Name',
+			      'field' => 'fname'
+			    ],
+			    [
+			      'labelText' => 'Last Name',
+			      'field' => 'lname'
+			    ]
+			  ]   	
+		        /*'resources' => [
+		        	
 		            ['id' => \Yii::$app->user->id < 6 ? $doctors[0]->id : Yii::$app->user->id,
 		             'title' => \Yii::$app->user->id < 6 ? $doctors[0]->profile->name : $doctor_online->profile->name],
 		            ['id' => $doctors[1]->id, 'title' => $doctors[1]->profile->name],
@@ -62,7 +106,7 @@ $this->params['breadcrumbs'][] = $this->title;
 		            ['id' => $doctors[3]->id, 'title' => $doctors[3]->profile->name],
 		            //['id' => $doctors[4]->id, 'title' => $doctors[4]->profile->name],
 		            ['id' => $assistants[0]->id, 'title' => $assistants[0]->profile->name],
-		        ],
+		        ],*/
 		        //'eventRender' => "",
 
               /*'resourceRender' => "function resourceRenderCallback(resourceObj, labelTds, bodyTds){

@@ -35,7 +35,9 @@ use yii\helpers\Url;
                 'onchange'=>'
                                 $.get( "'.Url::toRoute('/visit/price', true).'", { id: $(this).val() } )
                                     .done(function( data ) {
-                                        $( "#'.Html::getInputId($model, 'total_price').'" ).html( data );
+                                        /*console.log(data);*/
+                                        /*$( "#visit-total_price" ).val(data);*/
+                                        $( "#'.Html::getInputId($model, 'total_price').'" ).val( data );
                                     }
                                 );                        
                             '
@@ -62,7 +64,7 @@ use yii\helpers\Url;
 
     <?= $form->field($model, 'info')->textInput(['maxlength' => true])->input('info', ['placeholder' => 'Įrašykite papildomą informaciją']); ?>
 
-    <?= $form->field($model, 'total_price')->textInput()->input('total_price', ['placeholder' => '0.00 €']); ?>
+    <?= $form->field($model, 'total_price')->textInput()->input('info', ['placeholder' => 'Įrašykite sumą']); ?>
 
     <?= $form->field($model, 'payment')->dropDownList($visit_status, ['prompt' => ['text' => 'Pasirinkite būseną', 'options'=> ['disabled' => true, 'selected' => true]], 'class'=>'form-control required']); ?>
 
