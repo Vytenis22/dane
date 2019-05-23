@@ -65,7 +65,8 @@ class VisitController extends Controller
         $assists = Assists::find()->all();
 
         $visits = Visit::find()->all();
-        $doctors = User::find()->where(['>', 'id', 5])->andWhere(['!=', 'id', \Yii::$app->user->id])->all();
+        //$doctors = User::find()->where(['>', 'id', 4])->andWhere(['!=', 'id', \Yii::$app->user->id])->all();
+        $doctors = User::find()->where(['>', 'id', 4])->all();
         $doctor_online = User::find()->where(['id' => \Yii::$app->user->id])->one();
 
         foreach ($assists as $assist) {            
@@ -80,6 +81,8 @@ class VisitController extends Controller
             
             $Assist->nonstandard = [
                 'info' => $assist->info,
+                'poptitle' => $assist->fkUser->profile->name,
+                'popcontent' => $assist->info,
             ];
             $Assist->textColor = '#404040';
             $Assist->backgroundColor = '#80f442';
@@ -128,6 +131,7 @@ class VisitController extends Controller
                     'popcontent' => 'Kortelės nr. ' . $patient->card_number . ".\n" . $patientName . " " . $patientSurname . ".\n" . $vis->services[0]->name . ".\nTrukmė: " . $duration_format . " val." . "\n" . "\nKabinetas - " .$vis->room,
                 ];
                 $Visit->textColor = '#404040';
+                if ($vis->status == 0) $Visit->borderColor = 'red';
                 switch ($vis->payment)
                 {
                     case 2:                    
@@ -166,6 +170,21 @@ class VisitController extends Controller
     public function actionCalendar()
     {
         return $this->render('calendar');
+    }
+
+    /**
+     * Lists all Visit models.
+     * @return mixed
+     */
+    public function actionVisitsList()
+    {               
+        $searchModel = new VisitSearch();
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+
+        return $this->render('visitslist', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
     }
 
     /**
@@ -308,7 +327,7 @@ class VisitController extends Controller
             ->where(['service_id' => $modelService->fk_id_service])
             ->one();
 
-            $model->total_price = $modelService->fkIdService->price;
+            //$model->total_price = $modelService->fkIdService->price;
 
             $minutes = 0; 
             $duration_m = $duration->duration;
@@ -361,12 +380,24 @@ class VisitController extends Controller
      * Gives back filtered doctors array on chosen service.
      * @return 
      */
+    public function actionEndTime($start_time, $fk_id_service) 
+    {
+        $duration_minutes = Visit::getDurationMinutes($fk_id_service);
+        $end_time = date('Y-m-d H:i',strtotime($start_time . '+ '. $duration_minutes .' minutes'));
+
+        return $end_time;
+    }
+    
+    /**
+     * Gives back filtered doctors array on chosen service.
+     * @return 
+     */
     public function actionPrice($id) 
     {
         $service = Services::find()->where(['id' => $id])->one();        
         
         if(count($service)>0 && isset($id)){
-                echo "<input value='$service->price' />$service->price</br>";
+                return $service->price;
         }
         else {
             echo "<input />0.00 €</br>";
@@ -483,9 +514,15 @@ class VisitController extends Controller
         $services = Services::find()->where(['parent_id' => $modelService->fkIdService->parent_id])->all();
         $services_list = ArrayHelper::map($services, 'id', 'name');
 
-        if ($model->load(Yii::$app->request->post()) && $modelService->load(Yii::$app->request->post()) && $model->save() && $modelService->save()) {
-            //return $this->redirect(['view', 'id' => $model->id_visit]);
-            return $this->redirect(['timetable']);
+        if ($model->load(Yii::$app->request->post()) && $modelService->load(Yii::$app->request->post())) {
+
+            $duration_minutes = Visit::getDurationMinutes($modelService->fk_id_service);
+            $model->end = date('Y-m-d H:i',strtotime($model->start_time . '+ '. $duration_minutes .' minutes')); 
+
+            if ($model->save() && $modelService->save()) {
+                //return $this->redirect(['view', 'id' => $model->id_visit]);
+                return $this->redirect(['timetable']);
+            }            
         }
 
         return \Yii::$app->user->can('manageVisits') ? $this->render('update', [
@@ -546,7 +583,35 @@ class VisitController extends Controller
     {
         $this->findModel($id)->delete();
 
-        return $this->redirect(['index']);
+        return $this->redirect(['timetable']);
+    }
+
+    /**
+     * Find unavailable days.
+     * @param integer $id
+     * @return mixed
+     * @throws NotFoundHttpException if the model cannot be found
+     */
+    public function actionUnavailable($doc_id, $service_id) {
+        $unavailable_days = array();
+        $visits = Visit::getDoctorVisits($doc_id);
+
+        if (!empty($visits)){
+            //$visits_map = ArrayHelper::map($visits, 'start_time', 'end', 'start_format');
+            $visits_map = ArrayHelper::map($visits, 'start_time', 'end', 'start_format');
+
+            $a = "a";
+            $i = 1;
+            foreach ($visits_map as $key => $value) {
+                $time_slots = Visit::getDoctorTimes($key, $doc_id, $service_id);
+                if (empty($time_slots)) {
+                    $unavailable_days[$a . $i] = $key;
+                    $i++;
+                }
+            }
+        }
+        
+        echo json_encode($unavailable_days);
     }
 
     /**

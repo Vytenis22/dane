@@ -9,6 +9,7 @@ use yii\web\Controller;
 use yii\web\Response;
 use yii\filters\VerbFilter;
 use dektrium\user\models\User;
+use app\models\Cities;
 use app\models\LoginForm;
 use app\models\ContactForm;
 use app\models\CancelForm;
@@ -240,6 +241,8 @@ class CopyController extends Controller
      */
     public function actionReservation()
     {		
+    	$cities = Cities::find()->all();
+    	$cities_list = ArrayHelper::map($cities, 'id', 'name');
     	//$service_category = Services::find()->where(['parent_id' => 0])->all();
     	$service_category = ServiceCategory::find()->all();
     	$service_category_list = ArrayHelper::map($service_category, 'id', 'parent_name');
@@ -253,7 +256,7 @@ class CopyController extends Controller
 		$modelPatient = \Yii::createObject([
             'class'    => Patient::className(),
             'scenario' => Patient::SCENARIO_AUTO,
-        ]);			
+        ]);	
 		// loading models from reservation page form. Converting selected date to minutes and then add time
         if ($model->load(Yii::$app->request->post()) && $modelService->load(Yii::$app->request->post())) {
 			$duration = ServiceDuration::find()
@@ -287,7 +290,7 @@ class CopyController extends Controller
 				$if_exists = Patient::findOne([
 					'name' => $modelPatient->name,
 					'surname' => $modelPatient->surname,
-					'email' => $modelPatient->email,
+					'code' => $modelPatient->code,
 				]);
 				$patient_contacts;
 				if (is_null($if_exists)) 
@@ -303,7 +306,16 @@ class CopyController extends Controller
 					}
 				} else 
 				{
+					if(strcmp($modelPatient->email, $if_exists->email) != 0) {
+						$if_exists->email = $modelPatient->email;
+						$if_exists->scenario = Patient::SCENARIO_CLIENT;
+						if ($if_exists->update() === false) {
+							Yii::$app->session->setFlash('reservationError');
+							return $this->refresh();
+						}
+					}
 					$model->fk_patient = $if_exists->id_Patient;	
+					// $patient_contacts = $modelPatient;
 					$patient_contacts = $if_exists;
 				}	
 				//$model->fk_service = $modelService->fk_id_service;	
@@ -311,6 +323,8 @@ class CopyController extends Controller
 				//$model->status = Visit::STATUS_ORDERED;
 				//$model->payment = Visit::UNPAID;
 				$model->payment = 1;
+
+            	$model->total_price = $modelService->fkIdService->price;
 				if ($model->save())
 				{
 					$modelService->fk_id_visit = $model->id_visit;
@@ -361,12 +375,13 @@ class CopyController extends Controller
 			}			
         }
 		
-        return $this->render('reservation', [
+        return $this->render('reservationcopy', [
             'model' => $model,
 			'modelService' => $modelService,
 			'modelPatient' => $modelPatient,
 			'service_category_list' => $service_category_list,
-			'services_list' => $services_list,
+			'services_list' => $services_list, 
+			'cities_list' => $cities_list,
         ]);
     }
 	
@@ -416,7 +431,9 @@ class CopyController extends Controller
         
         if(count($services)>0 && isset($id)){
             foreach($services as $service){
-                echo "<option value='$service->id'>$service->name</option>";
+            	$duration = $service->duration->duration;
+            	$dur_for = substr($duration, 0, 5);
+                echo "<option value='$service->id'>$service->name ($service->price €) ($dur_for val.)</option>";
             }
         }
         else {
@@ -491,26 +508,140 @@ class CopyController extends Controller
 		$total_minutes = $hours * 60 + $minutes;
 		$interval = new DateInterval('PT' . $total_minutes . 'M');
 
-		$count = count($visits);
-
 		$time_slots = array();
+		$count = count($visits);
 
 		if ($count > 0)
 		{
-			$i = 0;
-			$int_end = $visits[$i]->end;
-			while($i < $count) 
-			{
-				$visit_start_time = new DateTime($visits[$i]->start_time); // [0] => 09:00, [1] => 12:00
-				$visit_end_time = new DateTime($visits[$i]->end); // 		  [0] => 10:00, [1] => 13:00
-				
-				if(!($period_start->add($interval) > $visit_start_time))
-				{
-					$added_slot = $period_start->sub($interval);
-					$time_slots[] = $added_slot->format('H:i');
-				}			
-				$period_start = $visit_end_time;
-				$i++;		
+			for ($i=0; $i <= $count; $i++) { 
+				if ($i == $count) {
+					// nuo paskutinio vizito pabaigos iki darbo pabaigos
+					$period_start = new DateTime($visits[$i - 1]->end);
+					if ($period_start < $break_start) {
+						$daterange = new DatePeriod($period_start, $interval , $break_start);
+						foreach($daterange as $range){
+			            	if (date_add($range, $interval) <= $break_start)
+							{
+								date_sub($range, $interval);
+			            		$time_slots[] = $range->format('H:i');
+							}
+			            }
+						$daterange = new DatePeriod($break_end, $interval , $work_end);
+						foreach($daterange as $range){
+			            	if (date_add($range, $interval) <= $work_end)
+							{
+								date_sub($range, $interval);
+			            		$time_slots[] = $range->format('H:i');
+							}
+			            }
+					} elseif ($period_start > $break_end) {
+						$daterange_last_visit = new DatePeriod($period_start, $interval , $work_end);
+			            foreach($daterange_last_visit as $range){
+			            	if (date_add($range, $interval) <= $work_end)
+							{
+								date_sub($range, $interval);
+			            		$time_slots[] = $range->format('H:i');
+							}
+			            }
+					} else {
+						$daterange = new DatePeriod($break_end, $interval , $work_end);
+			            foreach($daterange as $range){
+			            	if (date_add($range, $interval) <= $work_end)
+							{
+								date_sub($range, $interval);
+			            		$time_slots[] = $range->format('H:i');
+							}
+			            }
+					}
+					//$work_end->modify($work_end_hour);
+
+					/*$daterange_last_visit = new DatePeriod($period_start, $interval , $work_end);
+		            foreach($daterange_last_visit as $range){
+		            	if (date_add($range, $interval) <= $work_end)
+						{
+							date_sub($range, $interval);
+		            		$time_slots[] = $range->format('H:i');
+						}
+		            }*/
+				} else {
+                    // nuo darbo pradzios iki pirmo vizito pr arba nuo i vizito pab iki i+1 pr
+
+                    $period_end = new DateTime($visits[$i]->start_time);
+
+                    if ($period_start >= $break_start && $period_end <= $break_end) {
+                        $period_start = new DateTime($visits[$i]->end);
+                        continue;
+                    }
+
+                    $tmp_period_end = new DateTime($visits[$i]->start_time);
+                    $tmp_period_end->sub($interval);
+
+                    $tmp_break_start = new DateTime($date);
+                    $tmp_break_start->modify($break_start_hour);
+                    $tmp_break_start->sub($interval);
+
+                    if ($period_start <= $break_start && $period_end >= $break_end) {
+                        $daterange_before = new DatePeriod($period_start, $interval , $break_start);
+                        $daterange_after = new DatePeriod($break_end, $interval , $period_end);
+                        foreach($daterange_before as $range){       
+                            if ($range <= $tmp_break_start)
+                            {
+                                $time_slots[] = $range->format('H:i');
+                            }
+                        }       
+                        foreach($daterange_after as $range){        
+                            if ($range <= $tmp_period_end)
+                            {
+                                $time_slots[] = $range->format('H:i');
+                            }
+                        }   
+
+                        $period_start = new DateTime($visits[$i]->end);
+
+                        continue;
+
+                    }
+
+                    // blogai skaiciuoja slotus, kai intervalas atitinka laiko tarpa
+                    /*$period_end->sub($interval);
+                    $daterange = new DatePeriod($period_start, $interval , $period_end);
+                    if (!empty($daterange)){
+                        foreach($daterange as $range){      
+                            if ($range <= $break_start)
+                            {
+                                $time_slots[] = $range->format('H:i');
+                                echo $range->format('H:i') . " ideta ties pirmu else " . "\n";
+                            } elseif ($range >= $break_end) {
+                                $time_slots[] = $range->format('H:i');
+                                echo $range->format('H:i') . " ideta ties antru else . i = " . $i . "\n";
+                            }
+                            $daterange = array();
+                        }
+                    }*/
+
+                    // ----------------------------------------------------------------------------------------
+                    // -- buvo uzkomentuota pries
+
+                    $daterange = new DatePeriod($period_start, $interval , $period_end); // daterange neatimant interval
+
+                    //--$tmp_break_end = new DateTime($date);
+                    //--$tmp_break_end->modify($break_end_hour);
+                    //--$tmp_break_end->sub($interval);
+                    
+                    //--if (!empty($daterange)){
+                        foreach($daterange as $range){      
+                            if ($range <= $tmp_break_start && $range <= $tmp_period_end)
+                            {
+                                $time_slots[] = $range->format('H:i');
+                            } elseif ($range >= $break_end && $range <= $tmp_period_end) {
+                                $time_slots[] = $range->format('H:i');                         
+                            }
+                            //--$daterange = array();
+                        }
+                    //--}               
+
+                    $period_start = new DateTime($visits[$i]->end);
+                }
 			}
 		} else {			
 			$daterange_before_break = new DatePeriod($period_start, $interval ,$break_start);
@@ -665,4 +796,155 @@ class CopyController extends Controller
 	    }
 	    return parent::beforeAction($action);
 	}
+	
+	/** 
+     *  TEMPORARY Creates a new Visit model for guest reservation.
+     * If creation is successful, the browser will be redirected to the 'view' page.
+     * @return mixed
+     */
+    public function actionReservationcopy()
+    {		
+    	$cities = Cities::find()->all();
+    	$cities_list = ArrayHelper::map($cities, 'id', 'name');
+    	//$service_category = Services::find()->where(['parent_id' => 0])->all();
+    	$service_category = ServiceCategory::find()->all();
+    	$service_category_list = ArrayHelper::map($service_category, 'id', 'parent_name');
+    	$services = Services::find()->all();
+    	$services_list = ArrayHelper::map($services, 'id', 'name');
+		
+		$model = new Visit();
+		$model->scenario = Visit::SCENARIO_AUTO;
+
+		$modelService = new OrderedService();
+		$modelPatient = \Yii::createObject([
+            'class'    => Patient::className(),
+            'scenario' => Patient::SCENARIO_AUTO,
+        ]);	
+		// loading models from reservation page form. Converting selected date to minutes and then add time
+        if ($model->load(Yii::$app->request->post()) && $modelService->load(Yii::$app->request->post())) {
+			$duration = ServiceDuration::find()
+			->where(['service_id' => $modelService->fk_id_service])
+			->one();
+				
+			$model->tmptime = $model->time;
+			$minutes = 0; 
+			if (strpos($model->tmptime, ':') !== false) 
+			{ 
+				// Split hours and minutes. 
+				list($model->tmptime, $minutes) = explode(':', $model->tmptime); 
+			} 
+			$start_time_minutes =  $model->tmptime * 60 + $minutes;			
+			
+			$model->start_time = date('Y-m-d H:i:s',strtotime($model->tmpdate . '+ '. $start_time_minutes .' minutes'));	
+
+			$minutes = 0; 
+			$duration_m = $duration->duration;
+			if (strpos($duration_m, ':') !== false) 
+			{ 
+				// Split hours and minutes. 
+				list($duration_m, $minutes) = explode(':', $duration_m); 
+			} 
+			$duration_minutes =  $duration_m * 60 + $minutes;
+			
+			$model->end = date('Y-m-d H:i:s',strtotime($model->start_time . '+ '. $duration_minutes .' minutes'));	
+			
+			if ($modelPatient->load(Yii::$app->request->post())) 
+			{
+				$if_exists = Patient::findOne([
+					'name' => $modelPatient->name,
+					'surname' => $modelPatient->surname,
+					'code' => $modelPatient->code,
+				]);
+				$patient_contacts;
+				if (is_null($if_exists)) 
+				{
+					if ($modelPatient->save())
+					{
+						$model->fk_patient = $modelPatient->id_Patient;
+						$patient_contacts = $modelPatient;
+					} else 
+					{
+						Yii::$app->session->setFlash('reservationError');
+						return $this->refresh();
+					}
+				} else 
+				{
+					if(strcmp($modelPatient->email, $if_exists->email) != 0) {
+						$if_exists->email = $modelPatient->email;
+						$if_exists->scenario = Patient::SCENARIO_CLIENT;
+						if ($if_exists->update() === false) {
+							Yii::$app->session->setFlash('reservationError');
+							return $this->refresh();
+						}
+					}
+					$model->fk_patient = $if_exists->id_Patient;	
+					// $patient_contacts = $modelPatient;
+					$patient_contacts = $if_exists;
+				}	
+				//$model->fk_service = $modelService->fk_id_service;	
+				$model->status = Visit::VISIT_UNCONFIRMED;	
+				//$model->status = Visit::STATUS_ORDERED;
+				//$model->payment = Visit::UNPAID;
+				$model->payment = 1;
+
+            	$model->total_price = $modelService->fkIdService->price;
+				if ($model->save())
+				{
+					$modelService->fk_id_visit = $model->id_visit;
+					if ($modelService->save()) 							
+					{
+						$connection = Yii::$app->getDb();
+						$query = $connection->createCommand("CREATE EVENT IF NOT EXISTS `name" . $model->id_visit . "`
+				           ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL  10 MINUTE
+				           DO
+				           DELETE FROM `visit` WHERE `status` = 0 AND `id_visit` = " . $model->id_visit . " ");
+
+						$token = \Yii::createObject([
+						'class' => TokenPatient::className(),
+						'visit_id' => $model->id_visit,
+						'patient_id' => $model->fk_patient,
+						'type' => TokenPatient::TYPE_CONFIRM_REG,					
+						]);
+						if (!$token->save(false)) {
+							return false;
+							Yii::$app->session->setFlash('tokenError');
+							return $this->refresh();
+						}
+						$doctor = Profile::find()->where(['user_id' => $model->fk_user])->one();
+						Yii::$app->session->setFlash('confirmationSent');
+						Yii::$app->mailer->compose('confirmReservation', ['patient' => $modelPatient, 'visit' => $model, 'doctor' => $doctor, 'token' => $token])
+							->setFrom([Yii::$app->params['adminEmail']])
+							->setTo($modelPatient->email)
+							->setSubject("Rezervacija")
+							->send();
+
+						$query->execute();
+						
+						return $this->refresh();					
+					} else 
+					{
+						Yii::$app->session->setFlash('reservationError');
+						return $this->refresh();
+					}
+				} else 
+				{
+					Yii::$app->session->setFlash('reservationError');
+					return $this->refresh();
+				}
+			} else 
+			{
+				Yii::$app->session->setFlash('reservationError');
+				return $this->refresh();
+			}			
+        }
+		
+        return $this->render('reservationcopy', [
+            'model' => $model,
+			'modelService' => $modelService,
+			'modelPatient' => $modelPatient,
+			'service_category_list' => $service_category_list,
+			'services_list' => $services_list, 
+			'cities_list' => $cities_list,
+        ]);
+    }
 }

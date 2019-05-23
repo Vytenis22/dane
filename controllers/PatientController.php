@@ -5,10 +5,12 @@ namespace app\controllers;
 use Yii;
 use app\models\Patient;
 use app\models\PatientSearch;
+use app\models\Cities;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
 use yii\filters\AccessControl;
+use yii\helpers\ArrayHelper;
 
 /**
  * PatientController implements the CRUD actions for Patient model.
@@ -90,6 +92,8 @@ class PatientController extends Controller
      */
     public function actionCreate()
     {
+        $cities = Cities::find()->all();
+        $cities_list = ArrayHelper::map($cities, 'id', 'name');
         //$model = new Patient();
 		$model = \Yii::createObject([
             'class'    => Patient::className(),
@@ -102,6 +106,7 @@ class PatientController extends Controller
 
         return $this->render('create', [
             'model' => $model,
+            'cities_list' => $cities_list,
         ]);
     }
 
@@ -113,7 +118,10 @@ class PatientController extends Controller
      * @throws NotFoundHttpException if the model cannot be found
      */
     public function actionUpdate($id)
-    {
+    {       
+        $cities = Cities::find()->all();
+        $cities_list = ArrayHelper::map($cities, 'id', 'name');
+
         $model = $this->findModel($id);
         $model->scenario = Patient::SCENARIO_CREATE;
 
@@ -123,6 +131,7 @@ class PatientController extends Controller
 
         return $this->render('update', [
             'model' => $model,
+            'cities_list' => $cities_list,
         ]);
     }
 
