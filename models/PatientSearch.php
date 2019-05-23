@@ -11,13 +11,14 @@ use app\models\Patient;
  */
 class PatientSearch extends Patient
 {
+    public $cityObj;
     /**
      * {@inheritdoc}
      */
     public function rules()
     {
         return [
-            [['card_number', 'name', 'surname', 'code', 'email', 'birth_date', 'phone', 'sex'], 'safe'],
+            [['card_number', 'name', 'surname', 'code', 'email', 'birth_date', 'phone', 'sex', 'cityObj'], 'safe'],
             [['id_Patient'], 'integer'],
         ];
     }
@@ -41,6 +42,8 @@ class PatientSearch extends Patient
     public function search($params)
     {
         $query = Patient::find();
+
+        $query->joinWith(['cityObj']);
 		
 		$patientsQuery = count($query);
 
@@ -52,6 +55,13 @@ class PatientSearch extends Patient
 				'pageSize' => 10,
 			],
         ]);
+        
+        $dataProvider->sort->attributes['cityObj'] = [
+            // The tables are the ones our relation are configured to
+            // in my case they are prefixed with "tbl_"
+            'asc' => ['cities.name' => SORT_ASC],
+            'desc' => ['cities.name' => SORT_DESC],
+        ];  
 
         $this->load($params);
 
@@ -73,6 +83,7 @@ class PatientSearch extends Patient
             ->andFilterWhere(['like', 'email', $this->email])
             ->andFilterWhere(['like', 'phone', $this->phone])
             ->andFilterWhere(['like', 'sex', $this->sex])
+            ->andFilterWhere(['like', 'cities.name', $this->cityObj])
             ->andFilterWhere(['like', 'birth_date', $this->birth_date]);
 
         return $dataProvider;

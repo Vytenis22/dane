@@ -21,6 +21,8 @@ class RequestForm extends Model
         return [
             // name, email, subject and body are required
             [['reg_nr'], 'required'],
+
+            [['reg_nr'], 'string', 'max' => 8, 'min' => 8],
             // verifyCode needs to be entered correctly
             //['verifyCode', 'captcha'],
         ];

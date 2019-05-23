@@ -4,6 +4,9 @@ namespace app\models;
 
 use Yii;
 use dektrium\user\models\User;
+use DateTime;
+use DatePeriod;
+use DateInterval;
 
 /**
  * This is the model class for table "visit".
@@ -70,8 +73,8 @@ class Visit extends \yii\db\ActiveRecord
     public function scenarios()
     {
         return [
-            self::SCENARIO_AUTO => ['fk_user', 'tmpdate', 'tmptime', 'time', 'start_time', 'end', 'room', 'status', 'payment', 'fk_patient', 'reg_nr'],
-            self::SCENARIO_DOCTOR => ['fk_user','start_time', 'end', 'room', 'info', 'status', 'payment', 'fk_patient', 
+            self::SCENARIO_AUTO => ['fk_user', 'tmpdate', 'tmptime', 'time', 'start_time', 'end', 'room', 'total_price', 'status', 'payment', 'fk_patient', 'reg_nr'],
+            self::SCENARIO_DOCTOR => ['fk_user','start_time', 'end', 'room', 'info', 'total_price', 'status', 'payment', 'fk_patient', 
                 'reg_nr'],
             self::SCENARIO_ASSIST => ['fk_user','start_time', 'end', 'info', 'status', 'reg_nr'],
         ];
@@ -192,6 +195,14 @@ class Visit extends \yii\db\ActiveRecord
     {
         return $this->hasOne(User::className(), ['id' => 'fk_user']);
     }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getProfile()
+    {
+        return $this->hasOne(Profile::className(), ['user_id' => 'fk_user']);
+    }
 	
 	/*
 	* return doctors room
@@ -217,6 +228,27 @@ class Visit extends \yii\db\ActiveRecord
 		$patient = $query->patient;
 		//return $patient->name . " " . $patient->surname;
 		return $patient;
+    }
+    
+    /*
+    * return patients name
+    */
+    public static function getDurationMinutes($fk_id_service)
+    {
+        $duration = ServiceDuration::find()
+            ->where(['service_id' => $fk_id_service])
+            ->one();
+
+        $minutes = 0; 
+        $duration_m = $duration->duration;
+        if (strpos($duration_m, ':') !== false) 
+        { 
+            // Split hours and minutes. 
+            list($duration_m, $minutes) = explode(':', $duration_m); 
+        } 
+        $duration_minutes =  $duration_m * 60 + $minutes;
+
+        return $duration_minutes;
     }
 	
 	/*
@@ -244,6 +276,227 @@ class Visit extends \yii\db\ActiveRecord
 			return $bool;
 		//return $patient->name . " " . $patient->surname;
 		//return $patients;
+    }
+
+    /*
+    * return doctor visits
+    */
+    public static function getDoctorVisits($doc_id) {        
+        $today = date('Y-m-d');
+
+        $command = (new \yii\db\Query())
+            ->select(['start_time', 'end', 'date_format(start_time, "%Y-%m-%d") as start_format'])
+            ->from('visit')
+            ->where(['and', 'fk_user=:doc_id', 'start_time>:today'])
+            ->addParams([':doc_id' => $doc_id, ':today' => $today])
+            ->orderBy(['start_time' => SORT_ASC])
+            ->all();
+
+        return $command;
+    }
+    
+    /*
+    * return doctor times
+    */
+    public static function getDoctorTimes($dates, $id, $service) {
+        //$date = '2019-04-05';
+        $date = $dates;
+        //$user_id = 7;
+        $user_id = $id;
+        //$service_id = 5;
+        $service_id = $service;
+        $break_start = new DateTime($date);
+        $break_start_hour = '12:00';
+        $break_start->modify($break_start_hour);
+        $break_end = new DateTime($date);
+        $break_end_hour = '13:00';
+        $break_end->modify($break_end_hour);        
+        // ------------------------------------------------------------------------
+        // find selected service duration and find visits on selected date
+        $tomorrow = date('Y-m-d', strtotime($date. ' + 1 days'));
+        $duration_obj = ServiceDuration::find()
+            ->where(['service_id' => $service_id])
+            ->one();
+
+        $visits = Visit::find()
+        ->where(['fk_user' => $user_id])
+        ->andWhere(['>', 'start_time', $date])
+        ->andWhere(['<', 'start_time', $tomorrow])
+        ->orderBy(['start_time' => SORT_ASC])
+        ->all();
+        // ------------------------------------------------------------------------
+        // set period start time and end time for calculations      
+        $period_start = new DateTime($date);
+        $period_start_hour = '08:00';
+        $work_end = new DateTime($date);
+        $work_end_hour = '18:00';
+        $period_start->modify($period_start_hour);
+        $work_end->modify($work_end_hour);
+        // ------------------------------------------------------------------------
+
+        $duration = $duration_obj->duration;
+        list($hours, $minutes) = explode(':', $duration); 
+        $total_minutes = $hours * 60 + $minutes;
+        $interval = new DateInterval('PT' . $total_minutes . 'M');
+
+        $time_slots = array();
+        $count = count($visits);
+
+        if ($count > 0)
+        {
+            for ($i=0; $i <= $count; $i++) { 
+                if ($i == $count) {
+                    // nuo paskutinio vizito pabaigos iki darbo pabaigos
+                    $period_start = new DateTime($visits[$i - 1]->end);
+                    if ($period_start < $break_start) {
+                        $daterange = new DatePeriod($period_start, $interval , $break_start);
+                        foreach($daterange as $range){
+                            if (date_add($range, $interval) <= $break_start)
+                            {
+                                date_sub($range, $interval);
+                                $time_slots[] = $range->format('H:i');
+                            }
+                        }
+                        $daterange = new DatePeriod($break_end, $interval , $work_end);
+                        foreach($daterange as $range){
+                            if (date_add($range, $interval) <= $work_end)
+                            {
+                                date_sub($range, $interval);
+                                $time_slots[] = $range->format('H:i');
+                            }
+                        }
+                    } elseif ($period_start > $break_end) {
+                        $daterange_last_visit = new DatePeriod($period_start, $interval , $work_end);
+                        foreach($daterange_last_visit as $range){
+                            if (date_add($range, $interval) <= $work_end)
+                            {
+                                date_sub($range, $interval);
+                                $time_slots[] = $range->format('H:i');
+                            }
+                        }
+                    } else {
+                        $daterange = new DatePeriod($break_end, $interval , $work_end);
+                        foreach($daterange as $range){
+                            if (date_add($range, $interval) <= $work_end)
+                            {
+                                date_sub($range, $interval);
+                                $time_slots[] = $range->format('H:i');
+                            }
+                        }
+                    }
+                    //$work_end->modify($work_end_hour);
+
+                    /*$daterange_last_visit = new DatePeriod($period_start, $interval , $work_end);
+                    foreach($daterange_last_visit as $range){
+                        if (date_add($range, $interval) <= $work_end)
+                        {
+                            date_sub($range, $interval);
+                            $time_slots[] = $range->format('H:i');
+                        }
+                    }*/
+                } else {
+                    // nuo darbo pradzios iki pirmo vizito pr arba nuo i vizito pab iki i+1 pr
+
+                    $period_end = new DateTime($visits[$i]->start_time);
+
+                    if ($period_start >= $break_start && $period_end <= $break_end) {
+                        $period_start = new DateTime($visits[$i]->end);
+                        continue;
+                    }
+
+                    $tmp_period_end = new DateTime($visits[$i]->start_time);
+                    $tmp_period_end->sub($interval);
+
+                    $tmp_break_start = new DateTime($date);
+                    $tmp_break_start->modify($break_start_hour);
+                    $tmp_break_start->sub($interval);
+
+                    if ($period_start <= $break_start && $period_end >= $break_end) {
+                        $daterange_before = new DatePeriod($period_start, $interval , $break_start);
+                        $daterange_after = new DatePeriod($break_end, $interval , $period_end);
+                        foreach($daterange_before as $range){       
+                            if ($range <= $tmp_break_start)
+                            {
+                                $time_slots[] = $range->format('H:i');
+                            }
+                        }       
+                        foreach($daterange_after as $range){        
+                            if ($range <= $tmp_period_end)
+                            {
+                                $time_slots[] = $range->format('H:i');
+                            }
+                        }   
+
+                        $period_start = new DateTime($visits[$i]->end);
+
+                        continue;
+
+                    }
+
+                    // blogai skaiciuoja slotus, kai intervalas atitinka laiko tarpa
+                    /*$period_end->sub($interval);
+                    $daterange = new DatePeriod($period_start, $interval , $period_end);
+                    if (!empty($daterange)){
+                        foreach($daterange as $range){      
+                            if ($range <= $break_start)
+                            {
+                                $time_slots[] = $range->format('H:i');
+                                echo $range->format('H:i') . " ideta ties pirmu else " . "\n";
+                            } elseif ($range >= $break_end) {
+                                $time_slots[] = $range->format('H:i');
+                                echo $range->format('H:i') . " ideta ties antru else . i = " . $i . "\n";
+                            }
+                            $daterange = array();
+                        }
+                    }*/
+
+                    // ----------------------------------------------------------------------------------------
+                    // -- buvo uzkomentuota pries
+
+                    $daterange = new DatePeriod($period_start, $interval , $period_end); // daterange neatimant interval
+
+                    //--$tmp_break_end = new DateTime($date);
+                    //--$tmp_break_end->modify($break_end_hour);
+                    //--$tmp_break_end->sub($interval);
+                    
+                    //--if (!empty($daterange)){
+                        foreach($daterange as $range){      
+                            if ($range <= $tmp_break_start && $range <= $tmp_period_end)
+                            {
+                                $time_slots[] = $range->format('H:i');
+                            } elseif ($range >= $break_end && $range <= $tmp_period_end) {
+                                $time_slots[] = $range->format('H:i');                         
+                            }
+                            //--$daterange = array();
+                        }
+                    //--}               
+
+                    $period_start = new DateTime($visits[$i]->end);
+                }
+            }
+        } else {            
+            $daterange_before_break = new DatePeriod($period_start, $interval ,$break_start);
+            $daterange_after_break = new DatePeriod($break_end, $interval ,$work_end);
+            //$daterange = new DatePeriod('2019-04-04 08:00', 'PT2H' , '2019-04-04 18:00');
+            foreach($daterange_before_break as $range){             
+                //var_dump(date_add($range, $interval));
+                //die();                
+                if (date_add($range, $interval) <= $break_start)
+                {
+                    date_sub($range, $interval);
+                    $time_slots[] = $range->format('H:i');
+                }
+            }
+            foreach($daterange_after_break as $range){
+                if (date_add($range, $interval) <= $work_end)
+                {
+                    date_sub($range, $interval);
+                    $time_slots[] = $range->format('H:i');
+                }
+            }
+        }
+
+        return $time_slots;
     }
 	
 	/** @inheritdoc */

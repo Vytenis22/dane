@@ -97,11 +97,11 @@ class TokenPatient extends ActiveRecord
         switch ($this->type) {
 			case self::TYPE_CANCEL:
                 //$expirationTime = $this->module->cancelWithin;
-				$expirationTime = 3600;
+				$expirationTime = 60;
                 break;
             case self::TYPE_CONFIRM_REG:
                 //$expirationTime = $this->module->cancelWithin;
-                $expirationTime = 3600;
+                $expirationTime = 600;
                 break;
             default:
                 throw new \RuntimeException();

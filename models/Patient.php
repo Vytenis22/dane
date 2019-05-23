@@ -20,6 +20,7 @@ class Patient extends \yii\db\ActiveRecord
 {	
 	const SCENARIO_AUTO = 'auto';
     const SCENARIO_CREATE = 'create';
+    const SCENARIO_CLIENT = 'client';
 	
 	//public $countPatients = Patient::findAll()->count();
 	public $verifyCode;
@@ -44,8 +45,9 @@ class Patient extends \yii\db\ActiveRecord
     public function scenarios()
     {
         return [
-            self::SCENARIO_AUTO => ['card_number', 'name', 'surname', 'code', 'email', 'phone', 'verifyCode', 'sex'],
-            self::SCENARIO_CREATE => ['card_number', 'name', 'surname', 'email', 'birth_date', 'phone', 'code', 'sex'],
+            self::SCENARIO_AUTO => ['card_number', 'name', 'surname', 'code', 'email', 'phone', 'verifyCode', 'sex', 'address', 'birth_date', 'city'],
+            self::SCENARIO_CREATE => ['card_number', 'name', 'surname', 'email', 'birth_date', 'phone', 'code', 'sex', 'city', 'address'],
+            self::SCENARIO_CLIENT => ['name', 'surname', 'code', 'email'],
         ];
     }	
 
@@ -55,9 +57,9 @@ class Patient extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-			/*'emailTrim' => ['email', 'trim'],
-            'emailRequired' => ['email', 'required'],
-            'emailPattern' => ['email', 'email'],*/
+			'emailTrim' => ['email', 'trim'],
+            //'emailRequired' => ['email', 'required'],
+            'emailPattern' => ['email', 'email'],
 			
             /*[['id_Patient', 'sex', 'card_number', 'name', 'surname', 'code', 'phone'], 'required'],
             [['id_Patient'], 'integer'],
@@ -72,18 +74,22 @@ class Patient extends \yii\db\ActiveRecord
             [['card_number'], 'unique'],
             [['code'], 'unique'],*/
 			
-            [['sex', 'name', 'surname', 'code', 'phone', 'birth_date', 'email'], 'required'],
+            [['name', 'surname', 'code', 'email'], 'required'],
 			['verifyCode', 'captcha'],
 
-            [['code'], 'integer'],
+            //[['birth_date'], 'date', 'format' => 'php:yyyy-mm-dd'],
+
+            [['code', 'phone'], 'integer'],
             [['birth_date'], 'safe'],
-            [['card_number'], 'string', 'max' => 10],
+            [['card_number'], 'string', 'max' => 10],            
+            [['birth_date'], 'string', 'max' => 10],
             [['name', 'surname'], 'string', 'max' => 255],
             [['email'], 'string', 'max' => 35],
-            [['phone'], 'string', 'max' => 15],
+            [['phone'], 'string', 'max' => 9],
+            [['phone'], 'string', 'min' => 9],
             [['sex'], 'string', 'max' => 7],
             [['address'], 'string', 'max' => 100],
-            [['city'], 'string', 'max' => 20],
+            [['city'], 'string', 'max' => 25],
             [['code'], 'string', 'max' => 11],
             [['code'], 'string', 'min' => 11],
             [['card_number'], 'unique'],
@@ -99,8 +105,10 @@ class Patient extends \yii\db\ActiveRecord
         return [
             'name' => Yii::t('app', 'Name'),
             'surname' => Yii::t('app', 'Surname'),
+            'address' => Yii::t('app', 'Address'),
             'code' => Yii::t('app', 'Asmens kodas'),
             'email' => Yii::t('app', 'Email'),
+            'city' => Yii::t('app', 'City'),
             'phone' => Yii::t('app', 'Phone'),            
             'birth_date' => Yii::t('app', 'Birth Date'),
             'id_Patient' => Yii::t('app', 'Id Patient'),
@@ -117,6 +125,22 @@ class Patient extends \yii\db\ActiveRecord
     public function getTreatmentPlans()
     {
         return $this->hasMany(TreatmentPlans::className(), ['fk_patient' => 'id_Patient']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getCityObj()
+    {
+        return $this->hasOne(Cities::className(), ['id' => 'city']);
+    }
+    
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getCityName()
+    {
+        return $this->cityObj->name;
     }
 
     /**
@@ -144,10 +168,19 @@ class Patient extends \yii\db\ActiveRecord
     {
         if ($insert) {
             //$patientCount = Patient::find()->count();
+            if (isset($this->card_number))
+            {
+                
+            } else 
+            {
+                $last_patient = Patient::find()->orderBy(['id_Patient' => SORT_DESC])->one();
+                $last_patient_id = $last_patient->id_Patient;
+                $this->card_number = $this->getGenNumber($last_patient_id + 1); 
+            }
 
-            $last_patient = Patient::find()->orderBy(['id_Patient' => SORT_DESC])->one();
+            /*$last_patient = Patient::find()->orderBy(['id_Patient' => SORT_DESC])->one();
             $last_patient_id = $last_patient->id_Patient;
-            $this->card_number = $this->getGenNumber($last_patient_id + 1);     
+            $this->card_number = $this->getGenNumber($last_patient_id + 1); */    
         }
 
         return parent::beforeSave($insert);
