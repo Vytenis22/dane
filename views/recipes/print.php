@@ -44,7 +44,7 @@ PrintAsset::register($this);
             </tr>
             <tr class="adresas">
                 <td colspan="3">
-                    <strong>Mirglono g. 33, Degučiai, Šilutės raj., Lietuva</strong>
+                    <strong><?= $recipe->patient->address . ", " . $recipe->patient->cityName ?></strong>
                 </td>
             </tr>
             <tr class="adrsabl">

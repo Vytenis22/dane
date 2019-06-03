@@ -9,12 +9,12 @@ use yii\helpers\Url;
 /* @var $dataProvider yii\data\ActiveDataProvider */
 ?>
 <div class="return-button">
-<?= Html::a(Yii::t('app', 'Return'), Url::to(['patient/view', 'id' => $id_Patient]), ['class' => 'btn btn-primary']) ?>
+<?= \Yii::$app->user->can('viewVisit') ? Html::a(Yii::t('app', 'Return'), Url::to(['patient/view', 'id' => $id_Patient]), ['class' => 'btn btn-primary']) : Html::a(Yii::t('app', 'Return'), Url::to(['patient/view-patient', 'id' => \Yii::$app->user->id]), ['class' => 'btn btn-primary']) ?>
 </div>
 <?php
 
 $this->title = $model->name . " " . $model->surname . " " . Yii::t('app', 'Recipes');
-$this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Patients'), 'url' => ['patient/index']];
+\Yii::$app->user->can('viewVisit') ? $this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Patients'), 'url' => ['patient/index']] : "";
 $this->params['breadcrumbs'][] = ['label' => Yii::t('app', '{name}', ['name' => $model->fullName]), 'url' => Url::to(['patient/view', 'id' => $id_Patient])];
 $this->params['breadcrumbs'][] = $this->title;
 ?>
@@ -26,7 +26,7 @@ $this->params['breadcrumbs'][] = $this->title;
         <?php Pjax::begin(); ?>
         <?php // echo $this->render('_search', ['model' => $searchModel]); ?>
 
-            <?= Html::a(Yii::t('app', 'Create Recipes'), ['create', 'id_Patient' => $id_Patient], ['class' => 'btn btn-success', 'style' => ['margin-bottom' => '10px']]) ?>
+            <?= \Yii::$app->user->can('manageVisits') ? Html::a(Yii::t('app', 'Create Recipes'), ['create', 'id_Patient' => $id_Patient], ['class' => 'btn btn-success', 'style' => ['margin-bottom' => '10px']]) : "" ?>
 
         <?= GridView::widget([
             'dataProvider' => $dataProvider,
@@ -69,7 +69,7 @@ $this->params['breadcrumbs'][] = $this->title;
                     'value' => 'user.profile.name',
                 ],
 
-                ['class' => 'yii\grid\ActionColumn',
+                ['class' => 'yii\grid\ActionColumn', 'template' => \Yii::$app->user->can('manageVisits') ? '{view} {update} {delete}' : "",
                  'urlCreator' => function ($action, $model, $key, $index) {
                     if ($action === 'view') {
                         //$url ='index.php?r=client-login/lead-view&id='.$model->id;
