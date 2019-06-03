@@ -33,11 +33,9 @@ $this->params['breadcrumbs'][] = $this->title;
             <p>Pirmadienis - Penktadienis: 8:00 - 18:00</p>
         </div>
         <div id="map" style="position: relative; overflow: hidden;">
-            <div style="height: 100%; width: 100%; position: absolute; top: 0px; left: 0px; background-color: rgb(229, 227, 223);">
-                <div class="gm-style" style="position: absolute; z-index: 0; left: 0px; top: 0px; height: 100%; width: 100%; padding: 0px; border-width: 0px; margin: 0px;">
-                    
-                </div>
-            </div>
+
+            <iframe width='100%' height='100%' id='mapcanvas' src='https://maps.google.com/maps?q=Dan%C4%97s%20g.%2021,%20Klaip%C4%97da&amp;t=&amp;z=14&amp;ie=UTF8&amp;iwloc=&amp;output=embed' frameborder='0' scrolling='no' marginheight='0' marginwidth='0'><div class="zxos8_gm"><a rel="nofollow"  href="https://freecarcheck.co.uk">https://freecarcheck.co.uk</a></div><div style='overflow:hidden;'><div id='gmap_canvas' style='height:100%;width:100%;'></div></div><div><small>Powered by <a href="https://www.embedgooglemap.co.uk">Embed Google Map</a></small></div></iframe>
+
         </div>
         <div class="cl" style="margin-bottom:40px"></div>
         <div class="csinfo">
@@ -58,9 +56,9 @@ $this->params['breadcrumbs'][] = $this->title;
                    +370 657 88701
             </p>
         </div>
-        <div class="suzk">
+        <!-- <div class="suzk">
             <h2>Parašykite mums</h2>
-        </div>
+        </div> -->
     </div>
     
 </div>

@@ -7,7 +7,7 @@ use yii\bootstrap\Modal;
 use yii\bootstrap\ActiveForm;
 use yii\captcha\Captcha;
 
-$this->title = 'Atšaukti registraciją';
+$this->title = Yii::t('app', 'Cancel reservation');
 $this->params['breadcrumbs'][] = $this->title;
 ?>
 <div class="site-request col-lg-6">
@@ -38,7 +38,8 @@ $this->params['breadcrumbs'][] = $this->title;
 			'id' => 'request-form',
 			//'options' => ['class' => 'form-horizontal'],
 		]) ?>
-			<?= $form->field($model, 'reg_nr')->textInput(['maxlength'=>8, 'minlength'=>8]); ?>
+			<?= $form->field($model, 'reg_nr', ['labelOptions' => [ 'class' => 'label-asterix' ]])
+			->textInput(['maxlength'=> true, 'placeholder' => 'Įveskite registracijos nr.']); ?>
 
 			<div class="form-group">
 				<!--<div class="col-lg-offset-1 col-lg-11"> -->
