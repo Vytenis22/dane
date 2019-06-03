@@ -8,7 +8,7 @@ use yii\widgets\DetailView;
 /* @var $model app\models\Visit */
 
 $this->title = $model->patient->name . " " . $model->patient->surname;
-$this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Visits'), 'url' => Url::to(['visit/timetable'])];
+$this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Visits'), 'url' => Url::to(['patient/visits', 'id' => \Yii::$app->user->id])];
 $this->params['breadcrumbs'][] = $this->title;
 \yii\web\YiiAsset::register($this);
 ?>
@@ -16,7 +16,7 @@ $this->params['breadcrumbs'][] = $this->title;
     <div class="row">
         <div class="col-sm-7">
             <p style="display: inline-block;">
-                <?= Yii::$app->request->referrer == Url::toRoute(['visits-list'], true) ? Html::a(Yii::t('app', 'Return'), ['visits-list'], ['class' => 'btn btn-primary']) : Html::a(Yii::t('app', 'Return'), ['timetable'], ['class' => 'btn btn-primary']) ?>
+                <?= Html::a(Yii::t('app', 'Return'), Url::to(['patient/visits', 'id' => \Yii::$app->user->id]), ['class' => 'btn btn-primary']) ?>
             </p>
 
         <h1><?= Html::encode($this->title) ?></h1>

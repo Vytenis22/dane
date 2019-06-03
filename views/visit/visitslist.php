@@ -84,6 +84,8 @@ $this->params['breadcrumbs'][] = $this->title;
                 ],
                 //'id_Patient',
     			//'Count' => $patient->patients(),	
+
+                ['class' => 'yii\grid\ActionColumn', 'template' => '{view}'],       
             ],
         ]); 
     	?>
