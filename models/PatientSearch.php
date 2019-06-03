@@ -12,13 +12,14 @@ use app\models\Patient;
 class PatientSearch extends Patient
 {
     public $cityObj;
+    public $user;
     /**
      * {@inheritdoc}
      */
     public function rules()
     {
         return [
-            [['card_number', 'name', 'surname', 'code', 'email', 'birth_date', 'phone', 'sex', 'cityObj'], 'safe'],
+            [['card_number', 'name', 'surname', 'code', 'birth_date', 'phone', 'sex', 'cityObj', 'user'], 'safe'],
             [['id_Patient'], 'integer'],
         ];
     }
@@ -43,9 +44,7 @@ class PatientSearch extends Patient
     {
         $query = Patient::find();
 
-        $query->joinWith(['cityObj']);
-		
-		$patientsQuery = count($query);
+        $query->joinWith(['cityObj', 'user']);
 
         // add conditions that should always apply here
 
@@ -61,6 +60,13 @@ class PatientSearch extends Patient
             // in my case they are prefixed with "tbl_"
             'asc' => ['cities.name' => SORT_ASC],
             'desc' => ['cities.name' => SORT_DESC],
+        ]; 
+        
+        $dataProvider->sort->attributes['user'] = [
+            // The tables are the ones our relation are configured to
+            // in my case they are prefixed with "tbl_"
+            'asc' => ['user.email' => SORT_ASC],
+            'desc' => ['user.email' => SORT_DESC],
         ];  
 
         $this->load($params);
@@ -76,13 +82,13 @@ class PatientSearch extends Patient
             'id_Patient' => $this->id_Patient,
         ]);
 
-        $query->andFilterWhere(['like', 'name', $this->name])        
+        $query->andFilterWhere(['like', 'patient.name', $this->name])        
             ->andFilterWhere(['like', 'card_number', $this->card_number])
             ->andFilterWhere(['like', 'surname', $this->surname])
             ->andFilterWhere(['like', 'code', $this->code])
-            ->andFilterWhere(['like', 'email', $this->email])
             ->andFilterWhere(['like', 'phone', $this->phone])
             ->andFilterWhere(['like', 'sex', $this->sex])
+            ->andFilterWhere(['like', 'user.email', $this->user])
             ->andFilterWhere(['like', 'cities.name', $this->cityObj])
             ->andFilterWhere(['like', 'birth_date', $this->birth_date]);
 

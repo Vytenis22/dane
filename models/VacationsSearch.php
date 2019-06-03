@@ -4,24 +4,23 @@ namespace app\models;
 
 use yii\base\Model;
 use yii\data\ActiveDataProvider;
-use app\models\Services;
+use app\models\Vacations;
 
 /**
- * ServicesSearch represents the model behind the search form of `app\models\Services`.
+ * VacationsSearch represents the model behind the search form of `app\models\Vacations`.
  */
-class ServicesSearch extends Services
+class VacationsSearch extends Vacations
 {
-    public $duration;
-    public $category;
+    public $fkUser;
+    public $fkAdmin;
     /**
      * {@inheritdoc}
      */
     public function rules()
     {
         return [
-            [['price'], 'number'],
-            [['id', 'parent_id'], 'integer'],
-            [['name', 'category', 'duration'], 'safe'],
+            [['id', 'fk_user', 'fk_admin'], 'integer'],
+            [['begin', 'end', 'status', 'fkUser', 'fkAdmin', 'created_at', 'confirmed_at'], 'safe'],
         ];
     }
 
@@ -41,11 +40,16 @@ class ServicesSearch extends Services
      *
      * @return ActiveDataProvider
      */
-    public function search($params)
+    public function search($params, $id = null)
     {
-        $query = Services::find();
+        if ($id != null)
+        {
+            $query = Vacations::find()->where(['fk_user' => $id]);
+        } else {
+            $query = Vacations::find();
+        }        
 
-        $query->joinWith(['category', 'duration']); 
+        $query->joinWith(['fkUser', 'fkAdmin as us2', 'profile']);
 
         // add conditions that should always apply here
 
@@ -56,19 +60,19 @@ class ServicesSearch extends Services
             ],
         ]);
         
-        $dataProvider->sort->attributes['category'] = [
+        $dataProvider->sort->attributes['fkUser'] = [
             // The tables are the ones our relation are configured to
             // in my case they are prefixed with "tbl_"
-            'asc' => ['service_category.parent_name' => SORT_ASC],
-            'desc' => ['service_category.parent_name' => SORT_DESC],
-        ];   
+            'asc' => ['user.username' => SORT_ASC],
+            'desc' => ['user.username' => SORT_DESC],
+        ];
         
-        $dataProvider->sort->attributes['duration'] = [
+        $dataProvider->sort->attributes['fkAdmin'] = [
             // The tables are the ones our relation are configured to
             // in my case they are prefixed with "tbl_"
-            'asc' => ['service_duration.duration' => SORT_ASC],
-            'desc' => ['service_duration.duration' => SORT_DESC],
-        ]; 
+            'asc' => ['user.username' => SORT_ASC],
+            'desc' => ['user.username' => SORT_DESC],
+        ];
 
         $this->load($params);
 
@@ -81,14 +85,15 @@ class ServicesSearch extends Services
         // grid filtering conditions
         $query->andFilterWhere([
             'id' => $this->id,
-            //'name' => $this->name,
-            //'parent_id' => $this->parent_id,
+            'begin' => $this->begin,
+            'end' => $this->end,
         ]);
 
-        $query->andFilterWhere(['like', 'name', $this->name])
-            ->andFilterWhere(['like', 'price', $this->price])
-            ->andFilterWhere(['like', 'service_category.parent_name', $this->category])
-            ->andFilterWhere(['like', 'service_duration.duration', $this->duration]);
+        $query->andFilterWhere(['like', 'status', $this->status])
+            ->andFilterWhere(['like', 'created_at', $this->created_at])
+            ->andFilterWhere(['like', 'confirmed_at', $this->confirmed_at])
+            ->andFilterWhere(['like', 'user.username', $this->fkUser])
+            ->andFilterWhere(['like', 'profile.name', $this->fkAdmin]);
 
         return $dataProvider;
     }

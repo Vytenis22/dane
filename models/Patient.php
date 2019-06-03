@@ -3,6 +3,7 @@
 namespace app\models;
 
 use Yii;
+use dektrium\user\models\User;
 
 /**
  * This is the model class for table "{{%patient}}".
@@ -45,9 +46,9 @@ class Patient extends \yii\db\ActiveRecord
     public function scenarios()
     {
         return [
-            self::SCENARIO_AUTO => ['card_number', 'name', 'surname', 'code', 'email', 'phone', 'verifyCode', 'sex', 'address', 'birth_date', 'city'],
-            self::SCENARIO_CREATE => ['card_number', 'name', 'surname', 'email', 'birth_date', 'phone', 'code', 'sex', 'city', 'address'],
-            self::SCENARIO_CLIENT => ['name', 'surname', 'code', 'email'],
+            self::SCENARIO_AUTO => ['card_number', 'name', 'surname', 'code', 'phone', 'verifyCode', 'sex', 'address', 'birth_date', 'city'],
+            self::SCENARIO_CREATE => ['card_number', 'name', 'surname', 'birth_date', 'phone', 'code', 'sex', 'city', 'address'],
+            self::SCENARIO_CLIENT => ['name', 'surname'],
         ];
     }	
 
@@ -57,9 +58,9 @@ class Patient extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-			'emailTrim' => ['email', 'trim'],
-            //'emailRequired' => ['email', 'required'],
-            'emailPattern' => ['email', 'email'],
+			/*'emailTrim' => ['email', 'trim'],
+            'emailRequired' => ['email', 'required'],
+            'emailPattern' => ['email', 'email'],*/
 			
             /*[['id_Patient', 'sex', 'card_number', 'name', 'surname', 'code', 'phone'], 'required'],
             [['id_Patient'], 'integer'],
@@ -74,17 +75,17 @@ class Patient extends \yii\db\ActiveRecord
             [['card_number'], 'unique'],
             [['code'], 'unique'],*/
 			
-            [['name', 'surname', 'code', 'email'], 'required'],
+            [['name', 'surname', 'code'], 'required'],
 			['verifyCode', 'captcha'],
 
             //[['birth_date'], 'date', 'format' => 'php:yyyy-mm-dd'],
 
-            [['code', 'phone'], 'integer'],
+            [['code', 'phone', 'fk_user'], 'integer'],
             [['birth_date'], 'safe'],
             [['card_number'], 'string', 'max' => 10],            
             [['birth_date'], 'string', 'max' => 10],
             [['name', 'surname'], 'string', 'max' => 255],
-            [['email'], 'string', 'max' => 35],
+            //[['email'], 'string', 'max' => 35],
             [['phone'], 'string', 'max' => 9],
             [['phone'], 'string', 'min' => 9],
             [['sex'], 'string', 'max' => 7],
@@ -107,7 +108,7 @@ class Patient extends \yii\db\ActiveRecord
             'surname' => Yii::t('app', 'Surname'),
             'address' => Yii::t('app', 'Address'),
             'code' => Yii::t('app', 'Asmens kodas'),
-            'email' => Yii::t('app', 'Email'),
+            //'email' => Yii::t('app', 'Email'),
             'city' => Yii::t('app', 'City'),
             'phone' => Yii::t('app', 'Phone'),            
             'birth_date' => Yii::t('app', 'Birth Date'),
@@ -127,12 +128,35 @@ class Patient extends \yii\db\ActiveRecord
         return $this->hasMany(TreatmentPlans::className(), ['fk_patient' => 'id_Patient']);
     }
 
+    public static function getAllUsersIds() 
+    {
+        $usersIds = User::find()
+            ->all();
+        return $usersIds[0];
+    }
+
     /**
      * @return \yii\db\ActiveQuery
      */
     public function getCityObj()
     {
         return $this->hasOne(Cities::className(), ['id' => 'city']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getUser()
+    {
+        return $this->hasOne(User::className(), ['id' => 'fk_user']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getUseremail()
+    {
+        return $this->user->email;
     }
     
     /**

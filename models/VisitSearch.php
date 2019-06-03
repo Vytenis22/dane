@@ -98,4 +98,70 @@ class VisitSearch extends Visit
 
         return $dataProvider;
     }
+
+    /**
+     * Creates data provider instance with search query applied
+     *
+     * @param array $params
+     *
+     * @return ActiveDataProvider
+     */
+    public function searchPatient($params, $id)
+    {
+        $query = Visit::find()
+            ->joinWith(['user', 'patient', 'profile'])
+            ->where(['patient.fk_user' => $id]);
+
+        //$query->joinWith(['user', 'patient', 'profile']);
+
+        // add conditions that should always apply here
+
+        $dataProvider = new ActiveDataProvider([
+            'query' => $query,
+            'pagination' => [
+                'pageSize' => 10,
+            ],
+        ]);
+        
+        $dataProvider->sort->attributes['user'] = [
+            // The tables are the ones our relation are configured to
+            // in my case they are prefixed with "tbl_"
+            'asc' => ['user.username' => SORT_ASC],
+            'desc' => ['user.username' => SORT_DESC],
+        ];  
+        
+        $dataProvider->sort->attributes['patient'] = [
+            // The tables are the ones our relation are configured to
+            // in my case they are prefixed with "tbl_"
+            'asc' => ['patient.name' => SORT_ASC, 'patient.surname' => SORT_ASC],
+            'desc' => ['patient.name' => SORT_DESC, 'patient.surname' => SORT_DESC],
+        ];  
+
+        $this->load($params);
+
+        if (!$this->validate()) {
+            // uncomment the following line if you do not want to return any records when validation fails
+            // $query->where('0=1');
+            return $dataProvider;
+        }
+
+        // grid filtering conditions
+        $query->andFilterWhere([
+            'id_visit' => $this->id_visit,
+        ]);
+
+        $query->andFilterWhere(['like', 'room', $this->room])
+            ->andFilterWhere(['like', 'start_time', $this->start_time])
+            ->andFilterWhere(['like', 'end', $this->end])
+            ->andFilterWhere(['like', 'total_price', $this->total_price])
+            ->andFilterWhere(['like', 'reg_nr', $this->reg_nr])
+            ->andFilterWhere(['like', 'info', $this->info])
+            ->andFilterWhere(['OR', 
+                [ 'like' , 'patient.name' , $this->patient ],
+                [ 'like' , 'patient.surname' , $this->patient ],
+            ])
+            ->andFilterWhere(['like', 'profile.name', $this->user]);
+
+        return $dataProvider;
+    }
 }

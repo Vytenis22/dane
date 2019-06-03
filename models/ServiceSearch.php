@@ -17,7 +17,7 @@ class ServiceSearch extends Service
     public function rules()
     {
         return [
-            [['name', 'info'], 'safe'],
+            [['name', 'info', 'duration'], 'safe'],
             [['id_service'], 'integer'],
         ];
     }
@@ -49,8 +49,8 @@ class ServiceSearch extends Service
 			'pagination' => [
 				'pageSize' => 10,
 			]
-        ]);
-
+        ]);     
+        
         $this->load($params);
 
         if (!$this->validate()) {

@@ -41,4 +41,12 @@ class Cities extends \yii\db\ActiveRecord
             'name' => Yii::t('app', 'Name'),
         ];
     }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getPatients()
+    {
+        return $this->hasMany(Patient::className(), ['id_Patient' => 'id']);
+    }
 }

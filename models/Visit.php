@@ -4,6 +4,7 @@ namespace app\models;
 
 use Yii;
 use dektrium\user\models\User;
+use yii\helpers\ArrayHelper;
 use DateTime;
 use DatePeriod;
 use DateInterval;
@@ -58,6 +59,8 @@ class Visit extends \yii\db\ActiveRecord
 	
 	public $tmpdate;
 	public $tmptime;
+
+    public $verifyCode;
 	
     /**
      * {@inheritdoc}
@@ -73,7 +76,7 @@ class Visit extends \yii\db\ActiveRecord
     public function scenarios()
     {
         return [
-            self::SCENARIO_AUTO => ['fk_user', 'tmpdate', 'tmptime', 'time', 'start_time', 'end', 'room', 'total_price', 'status', 'payment', 'fk_patient', 'reg_nr'],
+            self::SCENARIO_AUTO => ['fk_user', 'tmpdate', 'tmptime', 'time', 'start_time', 'end', 'room', 'total_price', 'status', 'payment', 'fk_patient', 'reg_nr', 'verifyCode'],
             self::SCENARIO_DOCTOR => ['fk_user','start_time', 'end', 'room', 'info', 'total_price', 'status', 'payment', 'fk_patient', 
                 'reg_nr'],
             self::SCENARIO_ASSIST => ['fk_user','start_time', 'end', 'info', 'status', 'reg_nr'],
@@ -86,6 +89,9 @@ class Visit extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
+
+            ['verifyCode', 'captcha'],
+
             [['start_time', 'time', 'end', 'tmpdate', 'tmptime'], 'safe'],
             [['total_price'], 'number'],
             [['fk_user', 'fk_patient', 'fk_branch', 'payment', 'status'], 'integer'],
@@ -121,12 +127,15 @@ class Visit extends \yii\db\ActiveRecord
             'payment' => Yii::t('app', 'Payment'),
             'id_visit' => Yii::t('app', 'Id Visit'),
             //'fk_service' => Yii::t('app', 'Fk Service'),
+            'services' => Yii::t('app', 'Services'),
             'fk_user' => Yii::t('app', 'Doctor'),
             'fk_patient' => Yii::t('app', 'Patient'),
             'fk_branch' => Yii::t('app', 'Fk Branch'),
 			
 			'tmpdate' => Yii::t('app', 'TMP start date'),
 			'tmptime' => Yii::t('app', 'TMP start time'),
+            
+            'verifyCode' => Yii::t('app', 'Verification Code'),
         ];
     }
 	
@@ -294,6 +303,18 @@ class Visit extends \yii\db\ActiveRecord
 
         return $command;
     }
+
+    /*
+    * return doctors list
+    */
+    public static function getDoctorRole($user_id) {        
+        $auth = \Yii::$app->authManager;
+        $doctorsIds = $auth->getUserIdsByRole('doctor');
+
+        $boolean = in_array($user_id, $doctorsIds);
+
+        return $boolean;
+    }
     
     /*
     * return doctor times
@@ -318,12 +339,20 @@ class Visit extends \yii\db\ActiveRecord
             ->where(['service_id' => $service_id])
             ->one();
 
-        $visits = Visit::find()
-        ->where(['fk_user' => $user_id])
-        ->andWhere(['>', 'start_time', $date])
-        ->andWhere(['<', 'start_time', $tomorrow])
-        ->orderBy(['start_time' => SORT_ASC])
-        ->all();
+        $pre_visits = Visit::find()
+            ->where(['fk_user' => $user_id])
+            ->andWhere(['>', 'start_time', $date])
+            ->andWhere(['<', 'start_time', $tomorrow])
+            ->orderBy(['start_time' => SORT_ASC])
+            ->all();
+        $assists = Assists::find()
+            ->where(['fk_user' => $user_id])
+            ->andWhere(['>', 'start_time', $date])
+            ->andWhere(['<', 'start_time', $tomorrow])
+            ->orderBy(['start_time' => SORT_ASC])
+            ->all();
+        $visits = array_merge($pre_visits,$assists);
+        ArrayHelper::multisort($visits, ['start_time'], [SORT_ASC]);
         // ------------------------------------------------------------------------
         // set period start time and end time for calculations      
         $period_start = new DateTime($date);

@@ -49,6 +49,7 @@ class Services extends \yii\db\ActiveRecord
             'name' => Yii::t('app', 'Name'),
             'parent_id' => Yii::t('app', 'Parent ID'),
             'price' => Yii::t('app', 'Price'),
+            'duration' => Yii::t('app', 'Duration'),
         ];
     }
 
