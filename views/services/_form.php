@@ -2,6 +2,7 @@
 
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
+use kartik\time\TimePicker;
 
 /* @var $this yii\web\View */
 /* @var $model app\models\Services */
@@ -15,6 +16,14 @@ use yii\widgets\ActiveForm;
 	    <?php $form = ActiveForm::begin(); ?>
 
 	    <?= $form->field($model, 'name')->textInput(['maxlength' => true])->label('Pavadinimas') ?>
+
+	    <?= $form->field($duration_model, 'duration')->widget(TimePicker::classname(), [
+	    		'pluginOptions' => [
+			        'showMeridian' => false,
+			        'minuteStep' => 5,
+			        'defaultTime' => '00:00',
+			    ]
+	    	]); ?>
 
 	    <?= $form->field($model, 'parent_id')->textInput()->dropDownList($categories_list, 
 	            ['prompt' => Yii::t('app', 'Select category')]) ?>

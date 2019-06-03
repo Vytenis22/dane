@@ -88,7 +88,14 @@ $this->params['breadcrumbs'][] = $this->title;
                     'label' => 'Pavadinimas',
                     'attribute' => 'name',
                     'options' => [
-                        'class' => 'col-sm-7',
+                        'class' => 'col-sm-6',
+                    ],
+                ],
+                [
+                    'attribute' => 'duration',
+                    'value' => 'duration.duration',
+                    'options' => [
+                        'class' => 'col-sm-1',
                     ],
                 ],
                 //'parent_id',

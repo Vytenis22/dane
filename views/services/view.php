@@ -26,7 +26,17 @@ $this->params['breadcrumbs'][] = $this->title;
             'model' => $model,
             'attributes' => [
                 //'id',
-                'name',
+                [
+                    'label' => 'Pavadinimas',
+                    'attribute' => 'name',
+                ],
+                [
+                    'label' => 'Trukmė',
+                    'attribute' => 'duration.duration',
+                    'options' => [
+                        'class' => 'col-sm-1',
+                    ],
+                ],
                 //'parent_id',
                 [
                     'label' => 'Kategorija',
