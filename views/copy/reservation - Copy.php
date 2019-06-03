@@ -278,7 +278,7 @@ $this->params['breadcrumbs'][] = $this->title;
 				                        }
 
 				                        if ($.inArray(dmy, holidays) > -1 && date.getUTCDay() < 5 && dmy > date_f  ||
-										 $.inArray(dmy, dates) > -1 && date.getUTCDay() < 5) {
+										 $.inArray(dmy, dates) > -1) {
 				                            return [false, "highlight-day", ""]
 				                        } else if (date.getUTCDay() > 4) {
 				                            return [false, "", ""]
@@ -298,11 +298,64 @@ $this->params['breadcrumbs'][] = $this->title;
 							//$form->field($model, 'time')->dropDownList(['12:00' => '12:00', '13:00' => '13:00'], ['prompt' => 'Pasirinkite laiką']) 
 							$form->field($model, 'time', ['labelOptions' => [ 'class' => 'label-asterix' ]])->dropDownList( ['prompt' => 'Pasirinkite laiką'])->label("Laikas")
 						?>
-					</div>				
+					</div>
+
+					<!-- Radio buttons - esamas ar naujas klientas -->
+					<div id="radio-buttons" style="display:none;">
+						Pasirinkite vieną<br>
+						<input type="radio" name="buttons" id="client">Esamas klientas<br>
+						<input type="radio" name="buttons" id="new-client">Naujas klientas
+					</div>
+
+					<div id="patient-block" style="display:none;">
+						<?= $form->field($modelPatient, 'name', ['labelOptions' => [ 'class' => 'label-asterix' ]])
+						->textInput(['maxlength'=> 35], ['prompt' => 'Įveskite savo vardą'])
+						->input('name', ['placeholder' => 'Įveskite savo vardą']); ?>
+					
+						<?= $form->field($modelPatient, 'surname', ['labelOptions' => [ 'class' => 'label-asterix' ]])
+						->textInput(['maxlength'=> 35], ['prompt' => 'Įveskite savo pavarde'])
+						->input('surname', ['placeholder' => 'Įveskite savo pavardę']); ?>
+					</div>
+
+					<div id="new-patient-block" style="display:none;">
+
+						<?= $form->field($modelPatient, 'birth_date')->textInput(['maxlength' => true, 'placeholder' => 
+							'Pasirinkite datą ...'])
+			                ->widget(DatePicker::classname(), [
+	                            'options' => ['placeholder' => 'Pasirinkite datą ...'],                            
+	                            'removeButton' => false,
+                            	//'value' => "1999-01-01", 
+	                            'language' => 'lt', 	                                                   
+	                            'pluginOptions' => [
+	                                'autoclose' => true,
+	                                'format' => 'yyyy-mm-dd',
+	                                'todayHighlight' => true,
+	                                'todayBtn' => true,
+	                            ],
+	                             
+	                        ]) ?>
+					
+						<?= $form->field($modelPatient, 'phone', ['labelOptions' => [ 'class' => 'label-asterix' ]])
+						->textInput(['maxlength' => true, 'minlength' => true, 
+						'placeholder' => 'Įveskite telefono numerį (86...)']); ?>
+
+						<?= $form->field($modelPatient, 'city', ['labelOptions' => [ 'class' => 'label-asterix' ]])
+						->dropDownList($cities_list, ['prompt' => ['text' => Yii::t('app', 'Select city'), 'options'=> 
+						['disabled' => true, 'selected' => true]]]); ?>
+
+						<?= $form->field($modelPatient, 'address', ['labelOptions' => [ 'class' => 'label-asterix' ]])
+						->textInput(['maxlength'=> 100], ['prompt' => 'Įveskite adresą'])
+						->input('address', ['placeholder' => 'Įveskite adresą']); ?>
+
+						<?= $form->field($modelPatient, 'sex', ['labelOptions' => [ 'class' => 'label-asterix' ]])
+						->textInput(['maxlength'=> 7])
+						->dropDownList(['moteris' => 'moteris', 'vyras' => 'vyras'], ['prompt'=> ['text' => 
+						Yii::t('app', 'Select sex'), 'options'=> ['disabled' => true, 'selected' => true]]]); ?>
+					</div>
 
 					<div id="res-button" class="form-group" style="display:none;">
 						
-						<?= $form->field($model, 'verifyCode', ['labelOptions' => [ 'class' => 'label-asterix' ]])->widget(Captcha::className(), [
+						<?= $form->field($modelPatient, 'verifyCode', ['labelOptions' => [ 'class' => 'label-asterix' ]])->widget(Captcha::className(), [
 							'template' => '<div class="row"><div class="col-sm-10">{image}</div><div class="col-sm-9">{input}</div></div>',
 								'options' => ['placeholder' => 'Įveskite patvirtinimo kodą'],
 						]) ?>
