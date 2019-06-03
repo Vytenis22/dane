@@ -28,7 +28,6 @@ use kartik\date\DatePicker;
                                 'language' => 'lt',                         
                                 'pluginOptions' => [
                                     'autoclose' => true,
-                                    'daysOfWeekDisabled' => [0, 6],
                                     //'format' => 'yyyy-MM-dd',
                                     'todayHighlight' => true,
                                     'todayBtn' => true,
@@ -40,9 +39,8 @@ use kartik\date\DatePicker;
 
         <?= $form->field($model, 'sex')->textInput(['maxlength' => true])->dropDownList(['moteris' => 'moteris', 'vyras' => 'vyras'], ['prompt' => ['text' => Yii::t('app', 'Select sex'), 'options'=> ['disabled' => true, 'selected' => true]], 'class'=>'form-control required']) ?>
 
-        <?= $form->field($model, 'email')->textInput(['maxlength' => true]) ?>
-
-        <?= $form->field($model, 'phone')->textInput(['maxlength' => true]) ?>
+        <?= $form->field($model, 'phone')->textInput(['maxlength' => true, 'minlength' => true, 
+                        'placeholder' => 'Įveskite telefono numerį (86...)']) ?>
 
         <?= $form->field($model, 'address')->textInput(['maxlength' => true]) ?>
 

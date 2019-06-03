@@ -8,12 +8,12 @@ use yii\helpers\Html;
 $this->title = Yii::t('app', 'Update Patient: {name}', [
     'name' => $model->name,
 ]);
-$this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Patients'), 'url' => ['index']];
+\Yii::$app->user->can('viewVisit') ? $this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Patients'), 'url' => ['patient/index']] : "";
 $this->params['breadcrumbs'][] = ['label' => $model->name, 'url' => ['view', 'id' => $model->id_Patient]];
 $this->params['breadcrumbs'][] = Yii::t('app', 'Update');
 ?>
 <div class="return-button">
-<?= Html::a(Yii::t('app', 'Return'), ['patient/index'], ['class' => 'btn btn-primary pull-left']) ?>
+<?= \Yii::$app->user->can('viewVisit') ? Html::a(Yii::t('app', 'Return'), ['patient/view', 'id' => $model->id_Patient], ['class' => 'btn btn-primary pull-left']) : Html::a(Yii::t('app', 'Return'), ['patient/view-patient', 'id' => \Yii::$app->user->id], ['class' => 'btn btn-primary pull-left']) ?>
 </div>
 <div class="patient-update">
 

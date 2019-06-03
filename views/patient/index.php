@@ -1,6 +1,8 @@
 <?php
 
 use yii\helpers\Html;
+use yii\helpers\ArrayHelper;
+use app\models\Patient;
 use yii\grid\GridView;
 use yii\widgets\Pjax;
 /* @var $this yii\web\View */
@@ -57,7 +59,11 @@ $this->params['breadcrumbs'][] = $this->title;
                     ],
                     'visible' => \Yii::$app->user->can('manageVisits'),
                 ],
-                'email:email',
+                [
+                    'label' => 'El. paštas',
+                    'attribute' => 'user',
+                    'value' => 'user.email',
+                ],
                 /*[
                     'attribute' => 'email',
                     'options' => [
@@ -74,8 +80,10 @@ $this->params['breadcrumbs'][] = $this->title;
                 //'sex',
                 [
                     'attribute' => 'sex',
+                    'filter' => Html::activeDropDownList($searchModel, 'sex', ['vyras' => 'vyras', 'moteris' => 'moteris'], 
+                        ['class'=>'form-control','prompt' => Yii::t('app', 'Select sex')]),
                     'options' => [
-                        'class' => 'col-sm-1',
+                        'class' => 'col-sm-1',                        
                     ]
                 ],
                 //'birth_date',
@@ -96,7 +104,7 @@ $this->params['breadcrumbs'][] = $this->title;
                 //'id_Patient',
     			//'Count' => $patient->patients(),	
 
-                ['class' => 'yii\grid\ActionColumn', 'template' => \Yii::$app->user->can('manageVisits') ? '{view} {update} {delete}' : '{view}'],
+                ['class' => 'yii\grid\ActionColumn', 'template' => \Yii::$app->user->can('manageUsers') ? '{view} {update} {delete}' : (\Yii::$app->user->can('manageVisits') ? '{view} {update}' : '{view}')],
             ],
         ]); 
     	

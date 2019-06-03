@@ -43,7 +43,7 @@ use yii\bootstrap\Nav;
 
 <?php
 $this->title = $model->name . " " . $model->surname;
-$this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Patients'), 'url' => ['index']];
+\Yii::$app->user->can('viewVisit') ? $this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Patients'), 'url' => ['patient/index']] : "";
 $this->params['breadcrumbs'][] = $this->title;
 \yii\web\YiiAsset::register($this);
 ?>
@@ -77,7 +77,10 @@ $this->params['breadcrumbs'][] = $this->title;
                     ],
                     'sex',
                     //'code',
-                    'email:email',
+                    [
+                        'label' => 'El. paštas',
+                        'attribute' => 'user.email'
+                    ],
                     'phone',
                     'address',
                     [
@@ -94,7 +97,7 @@ $this->params['breadcrumbs'][] = $this->title;
     <?php if (\Yii::$app->user->can('manageVisits')) { ?>
     <p>
         <?= Html::a(Yii::t('app', 'Update'), ['update', 'id' => $model->id_Patient], ['class' => 'btn btn-primary pull-rigth']); ?>
-        <?= Html::a(Yii::t('app', 'Delete'), ['delete', 'id' => $model->id_Patient], [
+        <?= \Yii::$app->user->can('manageUsers') ? Html::a(Yii::t('app', 'Delete'), ['delete', 'id' => $model->id_Patient], [
             'class' => 'btn btn-danger pull-rigth',
             'data' => [
                 'confirm' => Yii::t('app', 'Are you sure you want to delete this item?'),
@@ -102,7 +105,7 @@ $this->params['breadcrumbs'][] = $this->title;
                 'ok' => Yii::t('app', 'OK'),
                 'cancel' => Yii::t('yii', 'Cancel'),
             ],
-        ]); } ?>
+        ]) : "" ; } ?>
     </p>
 
 </div>
