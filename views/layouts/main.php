@@ -71,19 +71,19 @@ $this->beginBody() ?>
 			<!-- <img src="../../web/images/logo-danes.png" alt="Danes klinika" width="170px" height="100px" class="center"> -->
 			<?= 
 				/*Html::a(Html::img(Url::to('@web/images/logo-danes.png'), ['alt' => 'Danės klinika', 'width'=>'190', 'height'=>'120']), ['site/index'], ['class' => 'logo-danes']);*/
-				Html::a(Html::img(Url::to('@web/images/logo-danes.png'), ['alt' => 'Danės klinika']), Yii::$app->user->isGuest ? ['/site/index'] : ['/visit/timetable'], ['class' => 'logo-danes']);
+				Html::a(Html::img(Url::to('@web/images/logo-danes.png'), ['alt' => 'Danės klinika']), Yii::$app->user->isGuest ? ['/site/index'] : (\Yii::$app->user->can('viewVisit') ? ['/visit/timetable'] : ['/patient/visits', 'id' => \Yii::$app->user->id]), ['class' => 'logo-danes']);
 			?>
 
 		<?php
 			if (Yii::$app->user->isGuest){
 			?>
-				<div class="ri">
+				<!-- <div class="ri">
 					<li>
 						<?php
 							echo Html::a(Yii::t('app', 'Online reservation'), Url::to(['/copy/reservation']), ['class' => 'btn btn-primary']);
 						?>
 					</li>
-				</div>
+				</div> -->
 			<?php 
 			}
 			?>
@@ -172,7 +172,7 @@ $this->beginBody() ?>
         'brandLabel' => Yii::$app->name,
 		//'brandLabel' => Html::img('@web/images/logo-danes.png', ['alt'=>Yii::$app->name]),
         //'brandUrl' => Yii::$app->homeUrl,
-		'brandUrl' => Yii::$app->user->isGuest ? ['/site/index'] : ['/visit/timetable'],
+		'brandUrl' => Yii::$app->user->isGuest ? ['/site/index'] : (\Yii::$app->user->can('viewVisit') ? ['/visit/timetable'] : ['/patient/visits', 'id' => \Yii::$app->user->id]),
         'options' => [
         	'class' => 'navbar navbar-inverse',
             //'class' => 'navbar-inverse navbar-static-top',
@@ -188,37 +188,63 @@ $this->beginBody() ?>
 
    ['label' => Yii::t('yii', 'Prices'), 'url' => ['/site/prices']],
    
-   ['label' => Yii::t('app', 'Services'), 'url' => ['/site/services']], 
-
-   ['label' => Yii::t('yii', 'Rezervacijos'),  
-        'url' => ['#'],
-        'template' => '<a href="{url}" >{label}<i class="fa fa-angle-left pull-right"></i></a>',
-        'options' => ['class' => 'nav navbar-nav navbar-inverse'],
-        'items' => [
-            ['label' => Yii::t('yii', 'Register'), 'url' => Url::to(['copy/reservation']),'options'=>['class'=>'navbar-drop']],
-            '<li class="divider"></li>',
-            ['label' => Yii::t('yii', 'Cancel reservation'), 'url' => Url::to(['/site/request']),'options'=>['class'=>'navbar-drop']],
-        ],
-    ],    
+   ['label' => Yii::t('app', 'Services'), 'url' => ['/site/services']],    
 
    ['label' => Yii::t('yii', 'Contact'), 'url' => ['/site/contact']],      
 
-   ['label' => Yii::t('user', 'Sign in'), 'url' => ['/user/login']],  
+   ['label' => Yii::t('user', 'Sign in'), 'url' => ['/user/login']],      
+
+   ['label' => Yii::t('user', 'Sign up'), 'url' => ['/user/register']],  
 
  ];
 
- 	$navItemsUser=[
+ 	$navItemsPatient=[
 
-   ['label' => Yii::t('app', 'Patients'), 'url' => ['/patient/index']],
-
-   ['label' => Yii::t('yii', 'Timetable'), 'url' => ['/visit/timetable']],    
+	['label' => Yii::t('yii', 'Reservation'),  
+	    'url' => ['#'],
+	    'template' => '<a href="{url}" >{label}<i class="fa fa-angle-left pull-right"></i></a>',
+	    'options' => ['class' => 'nav navbar-nav navbar-inverse'],
+	    'items' => [
+	        ['label' => Yii::t('yii', 'Register'), 'url' => Url::to(['copy/reservation']),'options'=>['class'=>'navbar-drop']],
+	        '<li class="divider"></li>',
+	        ['label' => Yii::t('yii', 'Cancel reservation'), 'url' => Url::to(['/site/request']),'options'=>['class'=>'navbar-drop']],
+	    ],
+	], 
 
    /*['label' => Yii::t('user', 'Logout') . ' (' . Yii::$app->user->identity->username . ')', 'url' => ['/site/logout'], 
    		'linkOptions' => ['data-method' => 'post']], */  
 
- ];
+ 	];
 
-	if (Yii::$app->user->can('manageServices')) 
+ 	$navItemsUser=[
+
+	['label' => Yii::t('app', 'Visits search'), 'url' => ['/visit/visits-list']],
+
+	['label' => Yii::t('app', 'Patients'), 'url' => ['/patient/index']],
+
+	['label' => Yii::t('yii', 'Timetable'), 'url' => ['/visit/timetable']],    
+
+   /*['label' => Yii::t('user', 'Logout') . ' (' . Yii::$app->user->identity->username . ')', 'url' => ['/site/logout'], 
+   		'linkOptions' => ['data-method' => 'post']], */  
+
+ 	];
+
+ 	if (Yii::$app->user->can('manageServices')) 
+	{		
+ 		array_push($navItemsUser, 
+ 			['label' => Yii::t('app', 'Manage Services'),  
+			    'url' => ['#'],
+			    'template' => '<a href="{url}" >{label}<i class="fa fa-angle-left pull-right"></i></a>',
+			    'options' => ['class' => 'nav navbar-nav navbar-inverse'],
+			    'items' => [
+			        ['label' => Yii::t('app', 'Services'), 'url' => ['/services/index'],'options'=>['class'=>'navbar-drop']],
+			        '<li class="divider"></li>',
+			        ['label' => Yii::t('app', 'Materials'), 'url' => ['/material/index'],'options'=>['class'=>'navbar-drop']],
+			    ],
+			]);
+	}
+
+	/*if (Yii::$app->user->can('manageServices')) 
 	{		
  		array_push($navItemsUser, ['label' => Yii::t('app', 'Services'), 'url' => ['/services/index']]);
 	}
@@ -226,18 +252,80 @@ $this->beginBody() ?>
  	if (Yii::$app->user->can('manageMaterials'))
  	{
 		array_push($navItemsUser, ['label' => Yii::t('app', 'Materials'), 'url' => ['/material/index']]);
+	}*/
+
+	if (Yii::$app->user->can('manageUsers')) 
+	{		
+ 		array_push($navItemsUser, 
+ 			['label' => Yii::t('app', 'Manage Users'),  
+			    'url' => ['#'],
+			    'template' => '<a href="{url}" >{label}<i class="fa fa-angle-left pull-right"></i></a>',
+			    'options' => ['class' => 'nav navbar-nav navbar-inverse'],
+			    'items' => [
+			        ['label' => Yii::t('yii', 'Users'), 'url' => ['/user/admin/index'],'options'=>['class'=>'navbar-drop']],
+			        '<li class="divider"></li>',
+			        ['label' => Yii::t('app', 'Vacations'), 'url' => ['vacations/index'],'options'=>['class'=>'navbar-drop']],
+			    ],
+			]);
 	}
 
- 	if (Yii::$app->user->can('manageUsers'))
+ 	/*if (Yii::$app->user->can('manageUsers'))
  	{
 		array_push($navItemsUser, ['label' => Yii::t('yii', 'Users'), 'url' => ['/user/admin/index']]);
-	}
+	}*/
 
 	if (!Yii::$app->user->isGuest) {
+		if (is_null(Yii::$app->user->identity->profile->name)) {
+			$username = Yii::$app->user->identity->username;
+		} else {
+			$user = Yii::$app->user->identity->profile->name;
+			$user_expl = explode(" ", Yii::$app->user->identity->profile->name);
+			$username = $user_expl[0];
+		}
+
+		array_push($navItemsPatient,
+
+			['label' => Yii::t('app', 'My History'),  
+			    'url' => ['#'],
+			    'template' => '<a href="{url}" >{label}<i class="fa fa-angle-left pull-right"></i></a>',
+			    'options' => ['class' => 'nav navbar-nav navbar-inverse'],
+			    'items' => [
+			        ['label' => Yii::t('app', 'My Card'), 'url' => ['patient/view-patient', 'id' => Yii::$app->user->id],'options'=>['class'=>'navbar-drop']],
+			        '<li class="divider"></li>',
+			        ['label' => Yii::t('app', 'My Visits'), 'url' => ['patient/visits', 'id' => Yii::$app->user->id],'options'=>['class'=>'navbar-drop']],
+			    ],
+			], 
+
+			['label' => Yii::t('user', 'Profile'), 'url' => ['/user/settings/profile']],
+			//['label' => Yii::t('user', 'Logout') . ' (' . Yii::$app->user->identity->username . ')',
+			['label' => Yii::t('user', 'Logout') . ' (' . $username . ')',
+
+       'url' => ['/site/logout'],
+
+       'linkOptions' => ['data-method' => 'post']]);
 
 		array_push($navItemsUser,
+
+			['label' => Yii::t('app', 'My History'),  
+			    'url' => ['#'],
+			    'template' => '<a href="{url}" >{label}<i class="fa fa-angle-left pull-right"></i></a>',
+			    'options' => ['class' => 'nav navbar-nav navbar-inverse'],
+			    'items' => [
+			        ['label' => Yii::t('app', 'My Card'), 'url' => ['patient/view-patient', 'id' => Yii::$app->user->id],'options'=>['class'=>'navbar-drop']],
+			        '<li class="divider"></li>',
+			        ['label' => Yii::t('app', 'My Visits'), 'url' => ['patient/visits', 'id' => Yii::$app->user->id],'options'=>['class'=>'navbar-drop']],
+			        '<li class="divider"></li>',
+			        ['label' => Yii::t('app', 'Vacations'), 'url' => ['vacations/my-vacations'],'options'=>['class'=>'navbar-drop']],
+			    ],
+			], 
+
+			/*['label' => Yii::t('app', 'My Card'), 'url' => ['patient/view-patient', 'id' => Yii::$app->user->id]],
+
+			['label' => Yii::t('app', 'My Visits'), 'url' => ['patient/visits', 'id' => Yii::$app->user->id]],*/
+
 			['label' => Yii::t('user', 'Profile'), 'url' => ['/user/settings/profile']],
-			['label' => Yii::t('user', 'Logout') . ' (' . Yii::$app->user->identity->username . ')',
+			//['label' => Yii::t('user', 'Logout') . ' (' . Yii::$app->user->identity->username . ')',
+			['label' => Yii::t('user', 'Logout') . ' (' . $username . ')',
 
        'url' => ['/site/logout'],
 
@@ -275,15 +363,50 @@ $this->beginBody() ?>
 
  }*/
 
-echo Nav::widget([
+ if (Yii::$app->user->isGuest) 
+ {
+ 	echo Nav::widget([
+
+		'options' => ['class' => 'navbar-nav navbar-right'],
+
+		'items' => $navItems,
+
+		'activateParents' => true,
+
+	]);
+ } elseif (Yii::$app->user->can('viewVisit'))
+ {
+ 	echo Nav::widget([
+
+		'options' => ['class' => 'navbar-nav navbar-right'],
+
+		'items' => $navItemsUser,
+
+		'activateParents' => true,
+
+	]);
+ } else 
+ {
+ 	echo Nav::widget([
+
+		'options' => ['class' => 'navbar-nav navbar-right'],
+
+		'items' => $navItemsPatient,
+
+		'activateParents' => true,
+
+	]);
+ }
+
+/*echo Nav::widget([
 
    'options' => ['class' => 'navbar-nav navbar-right'],
 
-   'items' => Yii::$app->user->isGuest ? $navItems : $navItemsUser,
+   'items' => Yii::$app->user->isGuest ? $navItems : (Yii::$app->user->can('createReservation') ? $navItemsPatient : $navItemsUser),
 
    'activateParents' => true,
 
-]);
+]);*/
 	
 	/*
     echo Nav::widget([
@@ -380,7 +503,7 @@ echo Nav::widget([
 		<p id="ct" class="pull-left" ></p>
 		
 		<div class="languages">
-		<p class="pull-right">
+		<!-- <p class="pull-right">
 		
 		<?php
 		
@@ -390,7 +513,7 @@ echo Nav::widget([
 		?>	
 
 			
-		</p>
+		</p> -->
 		</div>
 		
 		 <!-- <div id="txt"></div> -->
