@@ -76,7 +76,12 @@ class ServiceAssignmentController extends Controller
      */
     public function actionCreate()
     {
-        $users = User::find()->where(['role' => 10])->all();
+        $users = User::find()
+            ->leftJoin('auth_assignment', 'auth_assignment.user_id = user.id')
+            ->where(['=', 'auth_assignment.item_name', 'doctor'])
+            ->orderBy(['user.id' => SORT_ASC])
+            ->all();
+        //$users = User::find()->where(['role' => 10])->all();
         /*$users = Profile::find()
         ->leftJoin('user', 'user.id = user_id')
         ->where(['user.role' => 10])->all();*/

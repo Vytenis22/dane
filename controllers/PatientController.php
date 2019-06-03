@@ -6,6 +6,8 @@ use Yii;
 use app\models\Patient;
 use app\models\PatientSearch;
 use app\models\Cities;
+use app\models\Visit;
+use app\models\VisitSearch;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
@@ -42,12 +44,12 @@ class PatientController extends Controller
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['index', 'view','findModel'],
+                        'actions' => ['update', 'index', 'view', 'view-patient', 'findModel'],
                         'roles' => ['@'],
                     ],
                     [
                         'allow' => true,
-                        'actions' => ['update', 'create', 'delete'],
+                        'actions' => ['create', 'delete'],
                         'roles' => ['doctor'],
                     ],
                 ],
@@ -73,6 +75,35 @@ class PatientController extends Controller
     }
 
     /**
+     * Lists all patient's visits.
+     * @return mixed
+     */
+    public function actionVisits($id)
+    {
+        if ($id != \Yii::$app->user->id)                    
+        {
+            if (\Yii::$app->user->can('viewVisit'))
+            {
+                $searchModel = new VisitSearch();
+                $dataProvider = $searchModel->searchPatient(Yii::$app->request->queryParams, $id);
+
+                return $this->render('visits', [
+                    'searchModel' => $searchModel,
+                    'dataProvider' => $dataProvider,
+                ]);
+            } else
+                throw new NotFoundHttpException(Yii::t('app', 'The requested page does not exist.'));
+        }
+        $searchModel = new VisitSearch();
+        $dataProvider = $searchModel->searchPatient(Yii::$app->request->queryParams, $id);
+
+        return $this->render('visits', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+
+    /**
      * Displays a single Patient model.
      * @param integer $id
      * @return mixed
@@ -82,6 +113,34 @@ class PatientController extends Controller
     {
         return $this->render('view', [
             'model' => $this->findModel($id),
+        ]);
+    }
+
+    /**
+     * Displays a single Patient model.
+     * @param integer $id
+     * @return mixed
+     * @throws NotFoundHttpException if the model cannot be found
+     */
+    public function actionViewPatient($id)
+    {
+        $userId = Patient::find()->where('fk_user=:id', [':id' => $id])->one();
+        if (empty($userId))
+        {
+            throw new NotFoundHttpException(Yii::t('app', 'The requested page does not exist.'));
+        }
+        if ($id != \Yii::$app->user->id)                    
+        {
+            if (\Yii::$app->user->can('viewVisit'))
+            {
+                return $this->render('viewpatient', [
+                    'model' => $this->findPatient($id),
+                ]);
+            } else
+                throw new NotFoundHttpException(Yii::t('app', 'The requested page does not exist.'));
+        }
+        return $this->render('viewpatient', [
+            'model' => $this->findPatient($id),
         ]);
     }
 
@@ -111,6 +170,33 @@ class PatientController extends Controller
     }
 
     /**
+     * Creates a new Patient model.
+     * If creation is successful, the browser will be redirected to the 'view' page.
+     * @return mixed
+     */
+    public function actionCreatePatient($id)
+    {
+        $cities = Cities::find()->all();
+        $cities_list = ArrayHelper::map($cities, 'id', 'name');
+        //$model = new Patient();
+        $model = \Yii::createObject([
+            'class'    => Patient::className(),
+            'scenario' => Patient::SCENARIO_CREATE,
+        ]);
+
+        $model->fk_user = $id;
+
+        if ($model->load(Yii::$app->request->post()) && $model->save()) {
+            return $this->redirect(['viewpatient', 'id' => $model->id_Patient]);
+        }
+
+        return $this->render('createpatient', [
+            'model' => $model,
+            'cities_list' => $cities_list,
+        ]);
+    }
+
+    /**
      * Updates an existing Patient model.
      * If update is successful, the browser will be redirected to the 'view' page.
      * @param integer $id
@@ -126,7 +212,7 @@ class PatientController extends Controller
         $model->scenario = Patient::SCENARIO_CREATE;
 
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
-            return $this->redirect(['view', 'id' => $model->id_Patient]);
+            return \Yii::$app->user->can('viewVisit') ? $this->redirect(['view', 'id' => $model->id_Patient]) : $this->redirect(['view-patient', 'id' => \Yii::$app->user->id]);
         }
 
         return $this->render('update', [
@@ -163,6 +249,26 @@ class PatientController extends Controller
         }
 
         throw new NotFoundHttpException(Yii::t('app', 'The requested page does not exist.'));
+    }
+
+    /**
+     * Finds the Patient model based on its primary key value.
+     * If the model is not found, a 404 HTTP exception will be thrown.
+     * @param integer $id
+     * @return Patient the loaded model
+     * @throws NotFoundHttpException if the model cannot be found
+     */
+    protected function findPatient($id)
+    {
+        /*if (($model = Patient::find()->where(['fk_user' => $id])->one()) !== null) {
+            return $model;
+        }
+
+        throw new NotFoundHttpException(Yii::t('app', 'The requested page does not exist.'));*/
+
+        $model = Patient::find()->where(['fk_user' => $id])->one();
+
+        return $model;
     }
 
     public function beforeAction($action) {

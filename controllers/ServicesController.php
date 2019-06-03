@@ -5,6 +5,7 @@ namespace app\controllers;
 use Yii;
 use app\models\Services;
 use app\models\ServiceCategory;
+use app\models\ServiceDuration;
 use app\models\ServicesSearch;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
@@ -73,16 +74,22 @@ class ServicesController extends Controller
      */
     public function actionCreate()
     {
+        $duration_model = new ServiceDuration();
         $categories = ServiceCategory::find()->all();
         $categories_list = ArrayHelper::map($categories, 'id', 'parent_name');
         $model = new Services();
 
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
-            return $this->redirect(['view', 'id' => $model->id]);
+            $duration_model->service_id = $model->id;
+            if ($duration_model->load(Yii::$app->request->post()) && $duration_model->save())
+            {
+                return $this->redirect(['view', 'id' => $model->id]);
+            }            
         }
 
         return $this->render('create', [
             'model' => $model,
+            'duration_model' => $duration_model,
             'categories_list' => $categories_list,
         ]);
     }
@@ -96,16 +103,21 @@ class ServicesController extends Controller
      */
     public function actionUpdate($id)
     {
+        $duration_model = ServiceDuration::find()->where(['service_id' => $id])->one();
         $categories = ServiceCategory::find()->all();
         $categories_list = ArrayHelper::map($categories, 'id', 'parent_name');
         $model = $this->findModel($id);
 
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
-            return $this->redirect(['view', 'id' => $model->id]);
+            if ($duration_model->load(Yii::$app->request->post()) && $duration_model->save())
+            {
+                return $this->redirect(['view', 'id' => $model->id]);
+            } 
         }
 
         return $this->render('update', [
             'model' => $model,
+            'duration_model' => $duration_model,
             'categories_list' => $categories_list,
         ]);
     }

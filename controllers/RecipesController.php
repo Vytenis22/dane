@@ -26,11 +26,11 @@ class RecipesController extends Controller
         return [
             'access' => [
                 'class' => AccessControl::className(),
-                'only' => ['index', 'filtered-index', 'view', 'create', 'update', 'find-model'],
+                'only' => ['index', 'view', 'create', 'update', 'find-model'],
                 'rules' => [
                     [
                         'allow' => true,
-                        'actions' => ['index', 'filtered-index', 'view', 'create', 'update', 'find-model'],
+                        'actions' => ['index', 'view', 'create', 'update', 'find-model'],
                         'roles' => ['doctor'],
                     ],
                 ],
@@ -100,8 +100,25 @@ class RecipesController extends Controller
     public function actionFilteredIndex($id_Patient)
     {
         $model = Patient::find()->where(['id_Patient' => $id_Patient])->one();
+        if (empty($model)) 
+        {
+            throw new NotFoundHttpException(Yii::t('app', 'The requested page does not exist.'));
+        }
         $searchModel = new RecipesSearch();
         $dataProvider = $searchModel->searchFiltered(Yii::$app->request->queryParams, $id_Patient);
+        if ($model->fk_user != \Yii::$app->user->id)                    
+        {
+            if (\Yii::$app->user->can('manageVisits'))
+            {
+                return $this->render('index', [
+                    'searchModel' => $searchModel,
+                    'dataProvider' => $dataProvider,
+                    'id_Patient' => $id_Patient,
+                    'model' => $model,
+                ]);
+            } else
+                throw new NotFoundHttpException(Yii::t('app', 'The requested page does not exist.'));
+        }
 
         return $this->render('index', [
             'searchModel' => $searchModel,

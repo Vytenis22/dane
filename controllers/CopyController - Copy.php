@@ -40,20 +40,17 @@ class CopyController extends Controller
      */
     public function behaviors()
     {
-    	$behaviors = parent::behaviors();
-		
-
         return [
             'access' => [
                 'class' => AccessControl::className(),
-                'only' => ['logout', 'reservation'],
+                'only' => ['logout'],
                 'rules' => [
 					[
                         'actions' => ['language'],
                         'allow' => true,
                     ],
                     [
-                        'actions' => ['logout', 'reservation'],
+                        'actions' => ['logout'],
                         'allow' => true,
                         'roles' => ['@'],
                     ],
@@ -65,25 +62,6 @@ class CopyController extends Controller
                     'logout' => ['post'],
                 ],
             ],
-            $behaviors['rateLimiter'] = [
-				// Use class
-				'class' => \ethercreative\ratelimiter\RateLimiter::className(),
-
-				// The maximum number of allowed requests
-				'rateLimit' => 100,
-
-				// The time period for the rates to apply to
-				'timePeriod' => 600,
-
-				// Separate rate limiting for guests and authenticated users
-				// Defaults to true
-				// - false: use one set of rates, whether you are authenticated or not
-				// - true: use separate ratesfor guests and authenticated users
-				'separateRates' => false,
-
-				// Whether to return HTTP headers containing the current rate limiting information
-				'enableRateLimitHeaders' => false,
-			],
         ];
     }
 
@@ -263,13 +241,9 @@ class CopyController extends Controller
      * @return mixed
      */
     public function actionReservation()
-    {
-    	$patient = Patient::find()->where(['fk_user' => \Yii::$app->user->id])->one();;		
-    	if (empty($patient)) {
-    		return $this->render('empty');
-    	}
-    	//$cities = Cities::find()->all();
-    	//$cities_list = ArrayHelper::map($cities, 'id', 'name');
+    {		
+    	$cities = Cities::find()->all();
+    	$cities_list = ArrayHelper::map($cities, 'id', 'name');
     	//$service_category = Services::find()->where(['parent_id' => 0])->all();
     	$service_category = ServiceCategory::find()->all();
     	$service_category_list = ArrayHelper::map($service_category, 'id', 'parent_name');
@@ -280,10 +254,10 @@ class CopyController extends Controller
 		$model->scenario = Visit::SCENARIO_AUTO;
 
 		$modelService = new OrderedService();
-		/*$modelPatient = \Yii::createObject([
+		$modelPatient = \Yii::createObject([
             'class'    => Patient::className(),
             'scenario' => Patient::SCENARIO_AUTO,
-        ]);	*/
+        ]);	
 		// loading models from reservation page form. Converting selected date to minutes and then add time
         if ($model->load(Yii::$app->request->post()) && $modelService->load(Yii::$app->request->post())) {
 			$duration = ServiceDuration::find()
@@ -310,71 +284,107 @@ class CopyController extends Controller
 			} 
 			$duration_minutes =  $duration_m * 60 + $minutes;
 			
-			$model->end = date('Y-m-d H:i:s',strtotime($model->start_time . '+ '. $duration_minutes .' minutes'));
-
-			//$model->fk_service = $modelService->fk_id_service;	
-			$model->status = Visit::VISIT_UNCONFIRMED;	
-			//$model->status = Visit::STATUS_ORDERED;
-			//$model->payment = Visit::UNPAID;
-			$model->payment = 1;
-
-			$model->fk_patient = $patient->id_Patient;
-
-        	$model->total_price = $modelService->fkIdService->price;
-        	$check_free_time = date("H:i", strtotime($model->start_time));
-			if (in_array($check_free_time, Visit::getDoctorTimes($model->start_time, $model->fk_user, $modelService->fk_id_service)) && $model->save())
+			$model->end = date('Y-m-d H:i:s',strtotime($model->start_time . '+ '. $duration_minutes .' minutes'));	
+			
+			if ($modelPatient->load(Yii::$app->request->post())) 
 			{
-				$modelService->fk_id_visit = $model->id_visit;
-				if ($modelService->save()) 							
+				$if_exists = Patient::findOne([
+					'name' => $modelPatient->name,
+					'surname' => $modelPatient->surname,
+					//'code' => $modelPatient->code,
+				]);
+				$patient_contacts;
+				if (is_null($if_exists)) 
 				{
-					$connection = Yii::$app->getDb();
-					$query = $connection->createCommand("CREATE EVENT IF NOT EXISTS `name" . $model->id_visit . "`
-			           ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL  10 MINUTE
-			           DO
-			           DELETE FROM `visit` WHERE `status` = 0 AND `id_visit` = " . $model->id_visit . " ");
-
-					$token = \Yii::createObject([
-					'class' => TokenPatient::className(),
-					'visit_id' => $model->id_visit,
-					'patient_id' => $model->fk_patient,
-					'type' => TokenPatient::TYPE_CONFIRM_REG,					
-					]);
-					if (!$token->save(false)) {
-						return false;
-						Yii::$app->session->setFlash('tokenError');
+					if ($modelPatient->save())
+					{
+						$model->fk_patient = $modelPatient->id_Patient;
+						$patient_contacts = $modelPatient;
+					} else 
+					{
+						Yii::$app->session->setFlash('reservationError');
 						return $this->refresh();
 					}
-					$doctor = Profile::find()->where(['user_id' => $model->fk_user])->one();
-					Yii::$app->session->setFlash('confirmationSent');
-					Yii::$app->mailer->compose('confirmReservation', ['patient' => $patient, 'visit' => $model, 'doctor' => $doctor, 'token' => $token])
-						->setFrom([Yii::$app->params['adminEmail']])
-						->setTo($patient->user->email)
-						->setSubject("Rezervacija")
-						->send();
-
-					$query->execute();
-					
-					return $this->refresh();					
 				} else 
 				{
+					if(strcmp($modelPatient->email, $if_exists->email) != 0) {
+						$if_exists->email = $modelPatient->email;
+						$if_exists->scenario = Patient::SCENARIO_CLIENT;
+						if ($if_exists->update() === false) {
+							Yii::$app->session->setFlash('reservationError');
+							return $this->refresh();
+						}
+					}
+					$model->fk_patient = $if_exists->id_Patient;	
+					// $patient_contacts = $modelPatient;
+					$patient_contacts = $if_exists;
+				}	
+				//$model->fk_service = $modelService->fk_id_service;	
+				$model->status = Visit::VISIT_UNCONFIRMED;	
+				//$model->status = Visit::STATUS_ORDERED;
+				//$model->payment = Visit::UNPAID;
+				$model->payment = 1;
+
+            	$model->total_price = $modelService->fkIdService->price;
+            	$check_free_time = date("H:i", strtotime($model->start_time));
+				if (in_array($check_free_time, Visit::getDoctorTimes($model->start_time, $model->fk_user, $modelService->fk_id_service)) && $model->save())
+				{
+					$modelService->fk_id_visit = $model->id_visit;
+					if ($modelService->save()) 							
+					{
+						$connection = Yii::$app->getDb();
+						$query = $connection->createCommand("CREATE EVENT IF NOT EXISTS `name" . $model->id_visit . "`
+				           ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL  10 MINUTE
+				           DO
+				           DELETE FROM `visit` WHERE `status` = 0 AND `id_visit` = " . $model->id_visit . " ");
+
+						$token = \Yii::createObject([
+						'class' => TokenPatient::className(),
+						'visit_id' => $model->id_visit,
+						'patient_id' => $model->fk_patient,
+						'type' => TokenPatient::TYPE_CONFIRM_REG,					
+						]);
+						if (!$token->save(false)) {
+							return false;
+							Yii::$app->session->setFlash('tokenError');
+							return $this->refresh();
+						}
+						$doctor = Profile::find()->where(['user_id' => $model->fk_user])->one();
+						Yii::$app->session->setFlash('confirmationSent');
+						Yii::$app->mailer->compose('confirmReservation', ['patient' => $modelPatient, 'visit' => $model, 'doctor' => $doctor, 'token' => $token])
+							->setFrom([Yii::$app->params['adminEmail']])
+							->setTo($modelPatient->email)
+							->setSubject("Rezervacija")
+							->send();
+
+						$query->execute();
+						
+						return $this->refresh();					
+					} else 
+					{
+						Yii::$app->session->setFlash('reservationError');
+						return $this->refresh();
+					}
+				} else 
+				{
+					die("363");
 					Yii::$app->session->setFlash('reservationError');
 					return $this->refresh();
 				}
 			} else 
 			{
-				die("363");
 				Yii::$app->session->setFlash('reservationError');
 				return $this->refresh();
-			}		
+			}			
         }
 		
         return $this->render('reservation', [
             'model' => $model,
 			'modelService' => $modelService,
-			//'modelPatient' => $modelPatient,
+			'modelPatient' => $modelPatient,
 			'service_category_list' => $service_category_list,
 			'services_list' => $services_list, 
-			//'cities_list' => $cities_list,
+			'cities_list' => $cities_list,
         ]);
     }
 	

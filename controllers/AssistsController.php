@@ -87,12 +87,47 @@ class AssistsController extends Controller
                 return $this->redirect(['visit/timetable']);              
             }
 
-        }
+        }        
 
         return $this->renderAjax('assist', [
             'model' => $model,
             'doctors_list' => $doctors_list,
         ]);
+    }
+
+    /**
+     * Creates a new Visit model.
+     * If creation is successful, the browser will be redirected to the 'view' page.
+     * @return mixed
+     */
+    public function actionDoctorAssist($date, $id) 
+    {
+        $model = new Assists();
+
+        $model->start_time = date('Y-m-d H:i', strtotime($date));
+        $model->fk_user = $id;
+
+        if ($model->load(Yii::$app->request->post())) { 
+            if ($model->save())                
+            {
+                //return $this->redirect(['view', 'id' => $model->id_visit]);
+                return $this->redirect(['visit/timetable']);              
+            }
+
+        }  
+
+        return $this->ajaxResponse(false, $this->renderPartial('_formassist',['model' => $model]));
+    }
+
+    private function ajaxResponse($success = true, $content = '')
+    {
+        $response = [
+            'success' => $success,
+            'content' => $content,
+        ];
+        //$response = $content;
+        echo json_encode($response);
+        return $success;
     }
 
     /**

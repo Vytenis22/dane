@@ -180,7 +180,7 @@ class SiteController extends Controller
 			}
 			Yii::$app->mailer->compose('request', ['patient' => $patient = $visit->patient, 'visit' => $visit, 'token' => $token])
 				 ->setFrom([Yii::$app->params['adminEmail']])
-				 ->setTo($patient->email)
+				 ->setTo($patient->user->email)
 				 ->setSubject("Rezervacijos atšaukimas")
 				 ->send();
 				
